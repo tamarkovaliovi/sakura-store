@@ -5,10 +5,9 @@
       <div class="text-2xl font-bold text-dark">SakuraStore</div>
       
       <nav class="hidden md:flex space-x-8 text-dark">
-        <a href="#" class="font-medium hover:text-primary transition">Ana Sayfa</a>
-        <a href="#" class="font-medium hover:text-primary transition">Ürünler</a>
-        <a href="#" class="font-medium hover:text-primary transition">Kategoriler</a>
-      </nav>
+      <RouterLink to="/" class="font-medium hover:text-primary transition">Ana Sayfa</RouterLink><RouterLink to="/products" class="font-medium hover:text-primary transition">Ürünler</RouterLink>
+       <a href="#" class="font-medium hover:text-primary transition">Kategoriler</a>
+</nav>
 
       <div class="flex items-center space-x-4 text-dark">
         
