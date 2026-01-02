@@ -4,17 +4,17 @@
 
     <div class="relative bg-white pt-12 pb-10 px-4 sm:px-6 lg:px-8 text-center shadow-sm overflow-hidden">
       <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none select-none">
-        <span class="text-[10rem] font-bold text-blue-400 uppercase tracking-widest transform scale-110">
+        <span class="text-[10rem] font-bold text-blue-900 uppercase tracking-widest transform scale-110">
           Sakura
         </span>
       </div>
       
       <div class="relative z-10">
         <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-          Tüm Ürünler
+          {{ isSearching ? `'${searchKeyword}' İçin Sonuçlar` : 'Tüm Ürünler' }}
         </h1>
         <p class="max-w-2xl mx-auto text-lg text-gray-500 font-light">
-          En yeni koleksiyonumuzu keşfedin, tarzınızı yansıtan parçaları bulun.
+          {{ isSearching ? 'Aradığınız kriterlere uygun ürünler aşağıda listelenmiştir.' : 'En yeni koleksiyonumuzu keşfedin, tarzınızı yansıtan parçaları bulun.' }}
         </p>
       </div>
     </div>
@@ -22,8 +22,17 @@
     <main class="flex-grow container mx-auto px-4 py-8">
       
       <div v-if="loading" class="text-center text-gray-500 py-20">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p class="text-xl">Ürünler yükleniyor...</p>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900 mx-auto mb-4"></div>
+        <p class="text-xl">Ürünler aranıyor...</p>
+      </div>
+
+      <div v-else-if="products.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+        <div class="text-6xl mb-4">🔍</div>
+        <h3 class="text-2xl font-bold text-gray-700 mb-2">Üzgünüz, sonuç bulunamadı.</h3>
+        <p class="text-gray-500 mb-6">Farklı bir anahtar kelime deneyebilir veya tüm ürünlere dönebilirsiniz.</p>
+        <button @click="clearSearch" class="bg-blue-900 text-white px-6 py-3 rounded-full hover:bg-blue-800 transition shadow-lg">
+          Tüm Ürünleri Göster
+        </button>
       </div>
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -38,7 +47,7 @@
               @error="$event.target.src = tukendiImage"
             />
             
-            <button class="absolute bottom-4 right-4 bg-white text-dark p-3 rounded-full shadow-lg transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 group-hover:bottom-6">
+            <button class="absolute bottom-4 right-4 bg-white text-dark p-3 rounded-full shadow-lg transition-all duration-300 hover:bg-blue-900 hover:text-white hover:scale-110 group-hover:bottom-6">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
@@ -46,7 +55,7 @@
           </div>
 
           <div class="p-6 flex flex-col flex-grow">
-            <span class="text-xs font-bold text-primary uppercase tracking-wider mb-2">
+            <span class="text-xs font-bold text-blue-900 uppercase tracking-wider mb-2">
               {{ product.category.name }}
             </span>
             <h3 class="text-lg font-bold text-dark mb-1 leading-tight line-clamp-2">
@@ -54,7 +63,7 @@
             </h3>
             <div class="mt-auto pt-4 flex justify-between items-center border-t border-gray-100">
               <span class="text-xl font-bold text-dark">${{ product.price }}</span>
-              <button class="text-sm font-semibold text-primary hover:text-orange-700">İncele</button>
+              <button class="text-sm font-semibold text-blue-900 hover:text-orange-700">İncele</button>
             </div>
           </div>
 
@@ -67,43 +76,77 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router'; 
 import Header from '@/components/Header.vue';
 import AppFooter from '@/components/AppFooter.vue';
+import tukendiImage from '../components/pictures/tukendi.png';
 
-
-import tukendiImage from '../components/pictures/tukendi.jpg'; 
+const route = useRoute();    
+const router = useRouter();   
 
 const products = ref([]);
 const loading = ref(true);
+const isSearching = ref(false);
+const searchKeyword = ref("");
 
 const fetchProducts = async () => {
+  loading.value = true;
+  products.value = []; 
+  
   try {
+    let url = '';
+
+  
+    if (route.query.q) {
+      
+      isSearching.value = true;
+      searchKeyword.value = route.query.q;
+     
+      url = `https://api.escuelajs.co/api/v1/products/?title=${route.query.q}`;
+    } else {
     
-    const response = await fetch('https://api.escuelajs.co/api/v1/products/?categoryId=1&offset=0&limit=100');
+      isSearching.value = false;
+      url = 'https://api.escuelajs.co/api/v1/products/?categoryId=1&offset=0&limit=40';
+    }
+
+    const response = await fetch(url);
     const data = await response.json();
-    products.value = data;
-    loading.value = false;
+
+    // Gelen veri dizi mi kontrol et (Hata önlemek için)
+    if (Array.isArray(data)) {
+      products.value = data;
+    } else {
+      products.value = [];
+    }
+
   } catch (error) {
     console.error('Hata:', error);
+  } finally {
     loading.value = false;
   }
 };
 
-const formatImage = (imgurl) => {
-  
-  if (!imgurl) return tukendiImage;
 
+const clearSearch = () => {
+  router.push('/products'); 
+};
+
+const formatImage = (imgurl) => {
+  if (!imgurl) return tukendiImage;
   let cleaned = imgurl.replace(/["\[\]]/g, '');
-  
   if (cleaned.startsWith('"')) cleaned = cleaned.slice(1);
   if (cleaned.endsWith('"')) cleaned = cleaned.slice(0, -1);
   if (cleaned.includes('place') || cleaned.includes('canvas') || !cleaned.startsWith('http')) {
     return tukendiImage;
   }
-
   return cleaned;
 };
+
+
+watch(() => route.query.q, () => {
+  fetchProducts();
+});
 
 onMounted(() => {
   fetchProducts();
