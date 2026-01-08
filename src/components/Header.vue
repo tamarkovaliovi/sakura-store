@@ -63,13 +63,21 @@
             </button>
           </div>
         </div>
-
+         
         <div class="flex items-center space-x-3 ml-2 border-l pl-3 border-gray-200">
-          <button class="hover:text-blue-900 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </button>
+         <RouterLink 
+  :to="isLoggedIn ? '/profile' : '/login'" 
+  class="hover:text-blue-900 transition flex items-center"
+  title="Hesabım"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+  
+  <span v-if="isLoggedIn" class="ml-2 text-sm font-semibold hidden md:block">
+    {{ userName }}
+  </span>
+</RouterLink>
 
           <button class="hover:text-blue-900 transition relative">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,6 +150,26 @@ const fetchCategories = async () => {
     loading.value = false;
   }
 };
+// Script setup içinde:
+const isLoggedIn = ref(false);
+const userName = ref('');
+
+const checkLoginStatus = () => {
+  const token = localStorage.getItem('user_token');
+  const name = localStorage.getItem('user_name');
+  if (token) {
+    isLoggedIn.value = true;
+    userName.value = name || 'Hesabım';
+  } else {
+    isLoggedIn.value = false;
+    userName.value = '';
+  }
+};
+
+onMounted(() => {
+  checkLoginStatus(); // Sayfa açılınca kontrol et
+  // ... diğer fetch işlemleri
+});
 
 onMounted(() => {
   fetchCategories();
@@ -158,3 +186,4 @@ onMounted(() => {
   animation: fadeIn 0.2s ease-out forwards;
 }
 </style>
+
