@@ -59,12 +59,7 @@
                   </svg>
                   Hesap Ayarları
                 </a>
-                <button @click="handleLogout" class="w-full text-left px-6 py-4 text-red-500 hover:bg-red-50 font-medium transition flex items-center group">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-red-400 group-hover:text-red-600 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Çıkış Yap
-                </button>
+                <CustomButton mode="logout" />
               </nav>
             </div>
           </div>
@@ -120,15 +115,7 @@
                 Siparişleriniz, kargo takibiniz ve iade süreçleriniz burada listelenecek. 
               
               </p>
-              <button 
-                @click="$router.push('/products')" 
-                class="px-8 py-3 bg-blue-900 text-white rounded-full font-semibold hover:bg-blue-800 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center"
-              >
-                Alışverişe Başla
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
+              <CustomButton mode="start-shopping" />
             </div>
 
           </div>
@@ -145,6 +132,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Header from '@/components/Header.vue';
 import AppFooter from '@/components/AppFooter.vue';
+import CustomButton from '@/components/CustomButton.vue';
 
 const router = useRouter();
 const loading = ref(true);

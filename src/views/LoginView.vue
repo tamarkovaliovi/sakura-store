@@ -16,9 +16,7 @@
         </div>
 
         <div>
-          <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-900 hover:bg-blue-800 focus:outline-none transition duration-300">
-            {{ loading ? 'Giriş Yapılıyor...' : 'Giriş Yap' }}
-          </button>
+          <CustomButton mode="submit" :loading="loading" />
         </div>
       </form>
       
@@ -37,6 +35,8 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import CustomButton from '@/components/CustomButton.vue';
 
 const email = ref('');
 const password = ref('');

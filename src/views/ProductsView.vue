@@ -38,11 +38,8 @@
               @error="$event.target.src = tukendiImage"
             />
             
-            <button class="absolute bottom-4 right-4 bg-white text-dark p-3 rounded-full shadow-lg transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 group-hover:bottom-6">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
+          
+            <CustomButton mode="addDefault" />
           </div>
 
           <div class="p-6 flex flex-col flex-grow">
@@ -54,7 +51,7 @@
             </h3>
             <div class="mt-auto pt-4 flex justify-between items-center border-t border-gray-100">
               <span class="text-xl font-bold text-dark">${{ product.price }}</span>
-              <button class="text-sm font-semibold text-primary hover:text-orange-700">İncele</button>
+              <CustomButton mode="add" />
             </div>
           </div>
 
@@ -70,35 +67,35 @@
 import { ref, onMounted } from 'vue';
 import Header from '@/components/Header.vue';
 import AppFooter from '@/components/AppFooter.vue';
-
-
-import tukendiImage from '../components/pictures/tukendi.jpg'; 
+import tukendiImage from '@/components/pictures/tukendi.jpg'; 
+import CustomButton from '@/components/CustomButton.vue';
 
 const products = ref([]);
 const loading = ref(true);
 
 const fetchProducts = async () => {
   try {
-    
-    const response = await fetch('https://api.escuelajs.co/api/v1/products/?categoryId=1&offset=0&limit=100');
+    const response = await fetch('https://api.escuelajs.co/api/v1/products?offset=0&limit=20');
     const data = await response.json();
     products.value = data;
-    loading.value = false;
   } catch (error) {
     console.error('Hata:', error);
+  } finally {
     loading.value = false;
   }
 };
 
 const formatImage = (imgurl) => {
-  
   if (!imgurl) return tukendiImage;
 
+  
   let cleaned = imgurl.replace(/["\[\]]/g, '');
   
   if (cleaned.startsWith('"')) cleaned = cleaned.slice(1);
   if (cleaned.endsWith('"')) cleaned = cleaned.slice(0, -1);
-  if (cleaned.includes('place') || cleaned.includes('canvas') || !cleaned.startsWith('http')) {
+  
+ 
+  if (!cleaned.startsWith('http')) {
     return tukendiImage;
   }
 

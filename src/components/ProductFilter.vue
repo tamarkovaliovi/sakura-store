@@ -30,9 +30,7 @@
         <div class="text-6xl mb-4">🔍</div>
         <h3 class="text-2xl font-bold text-gray-700 mb-2">Üzgünüz, sonuç bulunamadı.</h3>
         <p class="text-gray-500 mb-6">Farklı bir anahtar kelime deneyebilir veya tüm ürünlere dönebilirsiniz.</p>
-        <button @click="clearSearch" class="bg-blue-900 text-white px-6 py-3 rounded-full hover:bg-blue-800 transition shadow-lg">
-          Tüm Ürünleri Göster
-        </button>
+        <CustomButton mode="clear-search" />
       </div>
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -63,7 +61,7 @@
             </h3>
             <div class="mt-auto pt-4 flex justify-between items-center border-t border-gray-100">
               <span class="text-xl font-bold text-dark">${{ product.price }}</span>
-              <button class="text-sm font-semibold text-blue-900 hover:text-orange-700">İncele</button>
+             <CustomButton mode="incele" />
             </div>
           </div>
 
@@ -81,6 +79,8 @@ import { useRoute, useRouter } from 'vue-router';
 import Header from '@/components/Header.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import tukendiImage from '../components/pictures/tukendi.png';
+import CustomButton from '@/components/CustomButton.vue';
+
 
 const route = useRoute();    
 const router = useRouter();   
@@ -113,7 +113,7 @@ const fetchProducts = async () => {
     const response = await fetch(url);
     const data = await response.json();
 
-    // Gelen veri dizi mi kontrol et (Hata önlemek için)
+    
     if (Array.isArray(data)) {
       products.value = data;
     } else {

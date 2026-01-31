@@ -26,9 +26,7 @@
         </div>
 
         <div>
-          <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-900 hover:bg-blue-800 focus:outline-none transition duration-300">
-            {{ loading ? 'Kayıt Yapılıyor...' : 'Kayıt Ol' }}
-          </button>
+          <CustomButton mode="register-submit" />
         </div>
       </form>
       
@@ -48,6 +46,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import CustomButton from '@/components/CustomButton.vue';
 
 const router = useRouter();
 const name = ref('');
@@ -57,10 +56,11 @@ const loading = ref(false);
 
 const handleRegister = async () => {
   loading.value = true;
-  try {
-    console.log("Kayıt isteği gönderiliyor...", email.value);
+  
+  // Otomatik avatar oluştur (İsim baş harflerinden resim yapar)
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name.value)}&background=0D47A1&color=fff`;
 
-    // API'ye kullanıcı oluşturma isteği
+  try {
     const response = await fetch('https://api.escuelajs.co/api/v1/users/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,27 +68,24 @@ const handleRegister = async () => {
         name: name.value,
         email: email.value,
         password: password.value,
-       
+        avatar: defaultAvatar
       })
     });
 
     const data = await response.json();
 
-   
     if (!response.ok) {
-      console.error("Kayıt Hatası Detayı:", data);
-      
+      console.error("Kayıt Hatası:", data);
       let errorMessage = "Kayıt başarısız!";
-      if (data.message) errorMessage += `\nSebep: ${data.message}`;
-      else if (Array.isArray(data.message)) errorMessage += `\nSebep: ${data.message.join(', ')}`;
-      
+      if (data.message) {
+        // Hata mesajı dizi ise stringe çevir
+        errorMessage += `\nSebep: ${Array.isArray(data.message) ? data.message.join(', ') : data.message}`;
+      }
       alert(errorMessage);
-      loading.value = false;
-      return; 
+      return;
     }
 
-    // KAYIT BAŞARILIYSA
-    alert("✅ Kayıt Başarılı! Şimdi giriş sayfasına yönlendiriliyorsunuz.");
+    alert("✅ Kayıt Başarılı! Giriş yapabilirsiniz.");
     router.push('/login');
 
   } catch (error) {
