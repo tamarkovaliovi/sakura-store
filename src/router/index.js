@@ -6,7 +6,8 @@ import RegisterView from '../views/RegisterView.vue';
 import ProfileView from '../views/ProfileView.vue';
 import CartView from '../views/CartView.vue';
 import ProductDetailsView from '../views/ProductDetailsView.vue';
-import AddProductView from '../views/AddProductView.vue';
+import AddProductView from '../views/EditProductView.vue';
+import EditProductView from '../views/EditProductView.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -47,9 +48,9 @@ const router = createRouter({
       component: ProductDetailsView
     },
    {
-  path: '/add-product', 
-  name: 'AddProduct',
-  component: AddProductView
+  path: '/edit-product/:id?', 
+  name: 'EditProduct',
+  component: EditProductView
 }
   ]
 });

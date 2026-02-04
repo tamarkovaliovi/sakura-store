@@ -1,8 +1,12 @@
 <template>
-  <div class="p-8 max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold mb-6">Yeni Ürün Ekle</h1>
+  <Header />
 
-    <form @submit.prevent="addProduct" class="space-y-4">
+  <div class="p-8 max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">
+      {{ isEditMode ? "Ürünü Güncelle" : "Yeni Ürün Ekle" }}
+    </h1>
+
+    <form @submit.prevent="handleSubmit" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Ürün Başlığı</label>
         <input
@@ -50,7 +54,10 @@
       </div>
 
       <div class="pt-4">
-        <CustomButton mode="add-product-add" :loading="isLoading" />
+        <CustomButton
+          :mode="isEditMode ? 'add-product-add' : 'add-product-add'"
+          :loading="isLoading"
+        />
       </div>
     </form>
 
@@ -62,29 +69,25 @@
       {{ message }}
     </p>
   </div>
+  <AppFooter />
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, reactive, onMounted, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import CustomButton from "@/components/CustomButton.vue";
+import Header from "@/components/Header.vue";
+import AppFooter from "@/components/AppFooter.vue";
 
 const router = useRouter();
+const route = useRoute();
+
 const isLoading = ref(false);
 const message = ref("");
 const isError = ref(false);
 const categories = ref([]);
-
-defineProps({
-  mode: {
-    type: String,
-    required: true,
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-});
+const productId = route.params.id;
+const isEditMode = computed(() => !!productId);
 
 const productData = reactive({
   title: "",
@@ -95,20 +98,42 @@ const productData = reactive({
 });
 
 onMounted(async () => {
+  await fetchCategories();
+
+  if (isEditMode.value) {
+    await fetchProductDetails();
+  }
+});
+
+const fetchCategories = async () => {
   try {
     const res = await fetch("https://api.escuelajs.co/api/v1/categories");
     if (res.ok) {
       categories.value = await res.json();
-      if (categories.value.length > 0) {
-        productData.categoryId = categories.value[0].id;
-      }
     }
   } catch (err) {
     console.error("Kategoriler yüklenemedi:", err);
   }
-});
+};
 
-const addProduct = async () => {
+const fetchProductDetails = async () => {
+  isLoading.value = true;
+  try {
+    const res = await fetch(`https://api.escuelajs.co/api/v1/products/${productId}`);
+    if (!res.ok) {
+      throw new Error("Ürün bulunamadı!");
+    }
+    const data = await res.json();
+  } catch (err) {
+    isError.value = true;
+    message.value = "Hata: Aradığınız ürün mevcut değil veya silinmiş.";
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Hem Ekleme hem Güncelleme işlemini yöneten ana fonksiyon
+const handleSubmit = async () => {
   if (!productData.title || productData.price <= 0) {
     isError.value = true;
     message.value = "Lütfen tüm alanları geçerli şekilde doldurun.";
@@ -117,22 +142,27 @@ const addProduct = async () => {
 
   isLoading.value = true;
   isError.value = false;
-  message.value = "Ürün kaydediliyor...";
+  message.value = isEditMode.value ? "Ürün güncelleniyor..." : "Ürün kaydediliyor...";
+
+  const url = isEditMode.value
+    ? `https://api.escuelajs.co/api/v1/products/${productId}`
+    : "https://api.escuelajs.co/api/v1/products/";
+
+  const method = isEditMode.value ? "PUT" : "POST";
 
   try {
-    const response = await fetch("https://api.escuelajs.co/api/v1/products/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+    const response = await fetch(url, {
+      method: method,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(productData),
     });
 
     const result = await response.json();
 
     if (response.ok) {
-      isError.value = false;
-      message.value = `Başarılı! "${result.title}" ürünü eklendi. Yönlendiriliyorsunuz...`;
+      message.value = isEditMode.value
+        ? "Ürün başarıyla güncellendi!"
+        : `Başarılı! "${result.title}" ürünü eklendi.`;
 
       setTimeout(() => {
         router.push("/products");
@@ -143,8 +173,8 @@ const addProduct = async () => {
     }
   } catch (error) {
     isError.value = true;
-    message.value = "Sunucuya bağlanırken bir hata oluştu!";
-    console.error("Post Error:", error);
+    message.value = "Sunucu hatası!";
+    console.error("İşlem Hatası:", error);
   } finally {
     isLoading.value = false;
   }
