@@ -60,6 +60,13 @@
             >
               Düzenle
             </router-link>
+
+            <button
+              @click="deleteProduct(product.id)"
+              class="text-xs text-red-500 hover:text-red-700 font-medium"
+            >
+              Sil
+            </button>
           </div>
 
           <div class="p-6 flex flex-col flex-grow">
@@ -105,6 +112,25 @@ const fetchProducts = async () => {
     console.error("Hata:", error);
   } finally {
     loading.value = false;
+  }
+};
+
+const deleteProduct = async (id) => {
+  if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
+
+  try {
+    const response = await fetch(`https://api.escuelajs.co/api/v1/products/${id}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      products.value = products.value.filter((p) => p.id !== id);
+      alert("Ürün başarıyla silindi.");
+    } else {
+      alert("Silme işlemi sırasında bir hata oluştu.");
+    }
+  } catch (error) {
+    console.error("Silme hatası:", error);
   }
 };
 
