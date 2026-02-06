@@ -47,6 +47,7 @@ const router = createRouter({
       name: 'product-details',
       component: ProductDetailsView
     },
+    
    {
   path: '/edit-product/:id?', 
   name: 'EditProduct',

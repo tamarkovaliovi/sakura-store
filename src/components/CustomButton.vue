@@ -278,4 +278,12 @@ defineEmits(["click", "logout"]);
   >
     <slot>Tüm Ürünler</slot>
   </router-link>
+
+  <button
+    v-if="mode === 'add-to-cart'"
+    @click="addToCart(product)"
+    class="bg-blue-900 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-800 transition shadow-md"
+  >
+    <slot>Sepete Ekle</slot>
+  </button>
 </template>
