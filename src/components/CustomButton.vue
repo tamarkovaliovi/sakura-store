@@ -59,9 +59,10 @@ defineEmits(["click", "logout"]);
     <slot>Çıkış Yap</slot>
   </button>
 
+  <!-- profil pagedeki buton  -->
   <button
     v-else-if="mode === 'start-shoppingg'"
-    @click="$router.push('/products')"
+    @click="$router.push('/Allproducts')"
     class="px-8 py-3 bg-blue-900 text-white rounded-full font-semibold hover:bg-blue-800 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center"
   >
     <slot>Alışverişe Başla</slot>
@@ -106,7 +107,7 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'start-shopping'"
-    @click="scrollToProducts"
+    @click="$emit('click')"
     class="bg-primary text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-orange-700 transition transform hover:scale-105 shadow-lg"
   >
     <slot>Alışverişe Başla</slot>
@@ -196,7 +197,7 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'clear-cart'"
-    @click="clearCart"
+    @click="$emit('click')"
     class="w-full mt-3 text-sm text-red-500 hover:text-red-700 underline"
   >
     <slot>Sepeti Temizle</slot>
@@ -204,7 +205,7 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'remove-itemfrom-cart'"
-    @click="removeFromCart(item.id)"
+    @click="$emit('click')"
     class="text-red-500 hover:text-red-700 p-2 transition"
     title="Sil"
   >
@@ -226,16 +227,16 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'increase-quantity'"
-    @click="item.quantity++"
-    class="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-blue-900 font-bold transition"
+    class="w-8 h-8 flex items-center justify-center ..."
+    @click="$emit('click')"
   >
     <slot>+</slot>
   </button>
 
   <button
     v-else-if="mode === 'decrease-quantity'"
-    @click="item.quantity > 1 ? item.quantity-- : removeFromCart(item.id)"
-    class="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-blue-900 font-bold transition"
+    class="w-8 h-8 flex items-center justify-center ..."
+    @click="$emit('click')"
   >
     <slot>-</slot>
   </button>
@@ -281,9 +282,20 @@ defineEmits(["click", "logout"]);
 
   <button
     v-if="mode === 'add-to-cart'"
-    @click="addToCart(product)"
-    class="bg-blue-900 text-white py-3 px-6 rounded-lg font-bold hover:bg-blue-800 transition shadow-md"
+    @click="$emit('click')"
+    class="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2 px-4 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
   >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="2.5"
+      stroke="currentColor"
+      class="w-4 h-4"
+    >
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+
     <slot>Sepete Ekle</slot>
   </button>
 </template>

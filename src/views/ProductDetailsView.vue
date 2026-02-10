@@ -67,7 +67,11 @@ watch(
 
             <p class="text-gray-600 mb-8 leading-relaxed">{{ product.description }}</p>
 
-            <CustomButton mode="add-to-cart" :product="product" />
+            <CustomButton
+              mode="add-to-cart"
+              :product="product"
+              @click="addToCart(product)"
+            />
           </div>
         </div>
       </div>

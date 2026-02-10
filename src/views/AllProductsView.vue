@@ -1,0 +1,232 @@
+<script setup>
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { addToCart } from "@/stores/cart";
+
+import Header from "@/components/Header.vue";
+import AppFooter from "@/components/AppFooter.vue";
+import CustomButton from "@/components/CustomButton.vue";
+import tukendiImage from "@/components/pictures/tukendi.jpg";
+
+const products = ref([]);
+const loading = ref(true);
+const router = useRouter();
+
+const fetchProducts = async () => {
+  try {
+    const response = await fetch(
+      "https://api.escuelajs.co/api/v1/products?offset=0&limit=20"
+    );
+    const data = await response.json();
+    products.value = data;
+  } catch (error) {
+    console.error("Hata:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deleteProduct = async (id) => {
+  if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
+
+  try {
+    const response = await fetch(`https://api.escuelajs.co/api/v1/products/${id}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      products.value = products.value.filter((p) => p.id !== id);
+      alert("Ürün başarıyla silindi.");
+    } else {
+      alert("Silme işlemi sırasında bir hata oluştu.");
+    }
+  } catch (error) {
+    console.error("Silme hatası:", error);
+  }
+};
+
+const formatImage = (imgurl) => {
+  if (!imgurl) return tukendiImage;
+
+  let cleaned = imgurl.replace(/["\[\]]/g, "");
+
+  if (cleaned.startsWith('"')) cleaned = cleaned.slice(1);
+  if (cleaned.endsWith('"')) cleaned = cleaned.slice(0, -1);
+
+  if (!cleaned.startsWith("http")) {
+    return tukendiImage;
+  }
+
+  return cleaned;
+};
+
+onMounted(() => {
+  fetchProducts();
+});
+</script>
+<template>
+  <div class="page-wrapper">
+    <Header />
+
+    <div class="page-header">
+      <div class="header-bg-text">
+        <span class="bg-text-content"> Sakura </span>
+      </div>
+
+      <div class="header-content">
+        <h1 class="page-title">Tüm Ürünler</h1>
+        <p class="page-subtitle">
+          En yeni koleksiyonumuzu keşfedin, tarzınızı yansıtan parçaları bulun.
+        </p>
+      </div>
+    </div>
+
+    <main class="main-content">
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p class="text-xl">Ürünler yükleniyor...</p>
+      </div>
+
+      <div v-else class="product-grid">
+        <div v-for="product in products" :key="product.id" class="product-card group">
+          <div class="card-image-wrapper">
+            <img
+              v-if="product.images.length > 0"
+              :src="formatImage(product.images[0])"
+              :alt="product.title"
+              class="card-image"
+              @error="$event.target.src = tukendiImage"
+            />
+          </div>
+
+          <div class="card-actions">
+            <router-link
+              :to="{ name: 'EditProduct', params: { id: product.id } }"
+              class="action-link edit"
+            >
+              Düzenle
+            </router-link>
+
+            <button @click="deleteProduct(product.id)" class="action-link delete">
+              Sil
+            </button>
+          </div>
+
+          <div class="card-body">
+            <span class="category-tag">
+              {{ product.category.name }}
+            </span>
+
+            <h3 class="product-title">
+              {{ product.title }}
+            </h3>
+
+            <div class="card-footer">
+              <span class="product-price">${{ product.price }}</span>
+              <CustomButton
+                mode="add-to-cart"
+                :product="product"
+                @click="addToCart(product)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <AppFooter />
+  </div>
+</template>
+<style scoped>
+.page-wrapper {
+  @apply min-h-screen flex flex-col font-sans bg-gray-50;
+}
+
+.page-header {
+  @apply relative bg-white pt-12 pb-10 px-4 sm:px-6 lg:px-8 text-center shadow-sm overflow-hidden;
+}
+
+.header-bg-text {
+  @apply absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none select-none;
+}
+
+.bg-text-content {
+  @apply text-[10rem] font-bold text-blue-400 uppercase tracking-widest transform scale-110;
+}
+
+.header-content {
+  @apply relative z-10;
+}
+
+.page-title {
+  @apply text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4;
+}
+
+.page-subtitle {
+  @apply max-w-2xl mx-auto text-lg text-gray-500 font-light;
+}
+
+.main-content {
+  @apply flex-grow container mx-auto px-4 py-8;
+}
+
+.loading-state {
+  @apply text-center text-gray-500 py-20;
+}
+
+.spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4;
+}
+
+.product-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8;
+}
+
+.product-card {
+  @apply bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-gray-100 flex flex-col h-full;
+}
+
+.card-image-wrapper {
+  @apply relative h-64 overflow-hidden bg-gray-100;
+}
+
+.card-image {
+  @apply w-full h-full object-cover transform group-hover:scale-110 transition duration-500;
+}
+
+.card-actions {
+  @apply mt-2 flex items-center justify-between group-hover:px-6 px-4 transition-all duration-300;
+}
+
+.action-link {
+  @apply text-xs font-medium;
+}
+
+.action-link.edit {
+  @apply text-blue-500 hover:text-blue-700 underline underline-offset-4;
+}
+
+.action-link.delete {
+  @apply text-red-500 hover:text-red-700;
+}
+
+.card-body {
+  @apply p-6 flex flex-col flex-grow;
+}
+
+.category-tag {
+  @apply text-xs font-bold text-blue-600 uppercase tracking-wider mb-2;
+}
+
+.product-title {
+  @apply text-lg font-bold text-gray-900 mb-1 leading-tight line-clamp-2;
+}
+
+.card-footer {
+  @apply mt-auto pt-4 flex justify-between items-center border-t border-gray-100;
+}
+
+.product-price {
+  @apply text-xl font-bold text-gray-900;
+}
+</style>

@@ -1,77 +1,3 @@
-<template>
-  <Header />
-
-  <div class="p-8 max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold mb-6">
-      {{ isEditMode ? "Ürünü Güncelle" : "Yeni Ürün Ekle" }}
-    </h1>
-
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Ürün Başlığı</label>
-        <input
-          v-model="productData.title"
-          type="text"
-          required
-          class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Örn: Modern Kulaklık"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Fiyat ($)</label>
-        <input
-          v-model.number="productData.price"
-          type="number"
-          required
-          min="1"
-          class="w-full p-2 border border-gray-300 rounded-md"
-          placeholder="Örn: 150"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Açıklama</label>
-        <textarea
-          v-model="productData.description"
-          required
-          class="w-full p-2 border border-gray-300 rounded-md"
-          rows="3"
-        ></textarea>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Kategori Seçin</label>
-        <select
-          v-model.number="productData.categoryId"
-          required
-          class="w-full p-2 border border-gray-300 rounded-md"
-        >
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-          </option>
-        </select>
-      </div>
-
-      <div class="pt-4">
-        <CustomButton
-          :mode="isEditMode ? 'add-product-add' : 'add-product-add'"
-          :loading="isLoading"
-        />
-      </div>
-    </form>
-
-    <p
-      v-if="message"
-      :class="isError ? 'text-red-500' : 'text-green-500'"
-      class="mt-4 font-semibold"
-    >
-      {{ message }}
-    </p>
-  </div>
-  <AppFooter />
-</template>
-
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
@@ -86,6 +12,7 @@ const isLoading = ref(false);
 const message = ref("");
 const isError = ref(false);
 const categories = ref([]);
+
 const productId = route.params.id;
 const isEditMode = computed(() => !!productId);
 
@@ -120,10 +47,14 @@ const fetchProductDetails = async () => {
   isLoading.value = true;
   try {
     const res = await fetch(`https://api.escuelajs.co/api/v1/products/${productId}`);
-    if (!res.ok) {
-      throw new Error("Ürün bulunamadı!");
-    }
+    if (!res.ok) throw new Error("Ürün bulunamadı!");
+
     const data = await res.json();
+
+    productData.title = data.title;
+    productData.price = data.price;
+    productData.description = data.description;
+    productData.categoryId = data.category.id;
   } catch (err) {
     isError.value = true;
     message.value = "Hata: Aradığınız ürün mevcut değil veya silinmiş.";
@@ -132,7 +63,6 @@ const fetchProductDetails = async () => {
   }
 };
 
-// Hem Ekleme hem Güncelleme işlemini yöneten ana fonksiyon
 const handleSubmit = async () => {
   if (!productData.title || productData.price <= 0) {
     isError.value = true;
@@ -165,7 +95,7 @@ const handleSubmit = async () => {
         : `Başarılı! "${result.title}" ürünü eklendi.`;
 
       setTimeout(() => {
-        router.push("/products");
+        router.push("/Allproducts");
       }, 2000);
     } else {
       isError.value = true;
@@ -180,3 +110,120 @@ const handleSubmit = async () => {
   }
 };
 </script>
+<template>
+  <div class="page-wrapper">
+    <Header />
+
+    <main class="main-content">
+      <div class="form-container">
+        <h1 class="page-title">
+          {{ isEditMode ? "Ürünü Güncelle" : "Yeni Ürün Ekle" }}
+        </h1>
+
+        <form @submit.prevent="handleSubmit" class="product-form">
+          <div class="form-group">
+            <label class="form-label">Ürün Başlığı</label>
+            <input
+              v-model="productData.title"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Örn: Modern Kulaklık"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Fiyat ($)</label>
+            <input
+              v-model.number="productData.price"
+              type="number"
+              required
+              min="1"
+              class="form-input"
+              placeholder="Örn: 150"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Açıklama</label>
+            <textarea
+              v-model="productData.description"
+              required
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Kategori Seçin</label>
+            <select v-model.number="productData.categoryId" required class="form-input">
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <CustomButton
+              :mode="isEditMode ? 'add-product-add' : 'add-product-add'"
+              :loading="isLoading"
+            >
+              {{ isEditMode ? "Güncelle" : "Kaydet" }}
+            </CustomButton>
+          </div>
+        </form>
+
+        <p
+          v-if="message"
+          :class="isError ? 'text-red-600' : 'text-green-600'"
+          class="status-message"
+        >
+          {{ message }}
+        </p>
+      </div>
+    </main>
+
+    <AppFooter />
+  </div>
+</template>
+<style scoped>
+.page-wrapper {
+  @apply min-h-screen bg-gray-50 flex flex-col;
+}
+
+.main-content {
+  @apply flex-grow py-12 px-4;
+}
+
+.form-container {
+  @apply max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-100;
+}
+
+.page-title {
+  @apply text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4;
+}
+
+.status-message {
+  @apply mt-4 font-semibold text-center p-3 rounded-lg bg-opacity-10;
+}
+
+.product-form {
+  @apply space-y-6;
+}
+
+.form-group {
+  @apply flex flex-col gap-1;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none bg-gray-50 focus:bg-white;
+}
+
+.form-actions {
+  @apply pt-4 flex justify-end;
+}
+</style>

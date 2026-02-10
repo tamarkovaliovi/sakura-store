@@ -24,7 +24,7 @@
           </div>
           <div class="hidden lg:flex items-center">
             <RouterLink
-              to="/products"
+              to="/Allproducts"
               class="text-sm font-semibold text-gray-600 hover:text-blue-900 px-4 py-2 rounded-lg hover:bg-blue-50 transition"
             >
               Tüm Ürünler
@@ -108,7 +108,7 @@
               v-if="cart.length > 0"
               class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white"
             >
-              {{ cart.length }}
+              {{ cart.reduce((toplam, urun) => toplam + urun.quantity, 0) }}
             </span>
             <div class="hidden xl:block absolute top-1 left-10 w-20">
               <p class="text-xs text-gray-500">Sepet</p>
@@ -132,8 +132,8 @@ const searchQuery = ref("");
 const isLoggedIn = ref(false);
 const userName = ref("");
 
-const cartTotal = computed(() => {
-  return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+const totalQuantity = computed(() => {
+  return cart.value.reduce((acc, item) => acc + item.quantity, 0);
 });
 
 const handleSearch = () => {
