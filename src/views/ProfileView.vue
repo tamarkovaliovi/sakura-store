@@ -330,7 +330,7 @@ onMounted(() => {
 }
 
 .sidebar-card {
-  @apply bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group;
+  @apply bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden;
 }
 
 .user-info {

@@ -11,19 +11,40 @@ import tukendiImage from "@/components/pictures/tukendi.jpg";
 const products = ref([]);
 const loading = ref(true);
 const router = useRouter();
+// pageing için
+const currentPage = ref(1);
+const limit = 20;
 
 const fetchProducts = async () => {
+  loading.value = true;
+
+  const offset = (currentPage.value - 1) * limit;
+
   try {
     const response = await fetch(
-      "https://api.escuelajs.co/api/v1/products?offset=0&limit=20"
+      `https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=${limit}`
     );
+
     const data = await response.json();
     products.value = data;
+
+    if (data.length === 0 && currentPage.value > 1) {
+      currentPage.value--;
+      await fetchProducts();
+    }
   } catch (error) {
     console.error("Hata:", error);
   } finally {
     loading.value = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
+};
+
+const changePage = (step) => {
+  if (currentPage.value === 1 && step === -1) return;
+
+  currentPage.value += step;
+  fetchProducts();
 };
 
 const deleteProduct = async (id) => {
@@ -133,6 +154,52 @@ onMounted(() => {
         </div>
       </div>
     </main>
+    <div class="flex justify-center items-center gap-6 mt-10 mb-10">
+      <button
+        @click="changePage(-1)"
+        :disabled="currentPage === 1"
+        :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
+        class="pagination-btn"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+
+      <span class="text-xl font-bold text-gray-800 select-none">
+        {{ currentPage }}
+      </span>
+
+      <button
+        @click="changePage(1)"
+        :disabled="products.length < itemsPerPage"
+        class="pagination-btn"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
+    </div>
 
     <AppFooter />
   </div>
@@ -228,5 +295,17 @@ onMounted(() => {
 
 .product-price {
   @apply text-xl font-bold text-gray-900;
+}
+
+.pagination-btn {
+  @apply flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-full shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-all duration-200;
+}
+
+.pagination-btn:active {
+  @apply transform scale-95;
+}
+
+.pagination-btn:disabled {
+  @apply bg-gray-100 text-gray-400 border-gray-100 shadow-none cursor-not-allowed transform-none;
 }
 </style>
