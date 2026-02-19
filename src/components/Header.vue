@@ -33,29 +33,7 @@
         </div>
 
         <div class="flex items-center space-x-6">
-          <div class="relative group hidden lg:block">
-            <CustomButoon mode="kategoriler" />
-
-            <div
-              class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 border border-gray-100"
-            >
-              <a
-                href="#"
-                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-900"
-                >Elektronik</a
-              >
-              <a
-                href="#"
-                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-900"
-                >Giyim</a
-              >
-              <a
-                href="#"
-                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-900"
-                >Aksesuar</a
-              >
-            </div>
-          </div>
+          <div class="relative group hidden lg:block"></div>
 
           <div class="relative group">
             <RouterLink

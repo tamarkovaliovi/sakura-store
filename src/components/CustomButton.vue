@@ -2,6 +2,7 @@
 defineProps({
   mode: String,
   loading: Boolean,
+  product: Object,
 });
 defineEmits(["click", "logout"]);
 </script>
@@ -59,7 +60,6 @@ defineEmits(["click", "logout"]);
     <slot>Çıkış Yap</slot>
   </button>
 
-  <!-- profil pagedeki buton  -->
   <button
     v-else-if="mode === 'start-shoppingg'"
     @click="$router.push('/Allproducts')"
@@ -227,7 +227,7 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'increase-quantity'"
-    class="w-8 h-8 flex items-center justify-center ..."
+    class="w-8 h-8 flex items-center justify-center"
     @click="$emit('click')"
   >
     <slot>+</slot>
@@ -235,7 +235,7 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'decrease-quantity'"
-    class="w-8 h-8 flex items-center justify-center ..."
+    class="w-8 h-8 flex items-center justify-center"
     @click="$emit('click')"
   >
     <slot>-</slot>
@@ -298,7 +298,7 @@ defineEmits(["click", "logout"]);
 
     <slot>Sepete Ekle</slot>
   </button>
-  <!-- all products pageindeki yeşil ekleme butonu -->
+
   <button
     v-if="mode === 'add-product-green'"
     @click="$emit('click')"
