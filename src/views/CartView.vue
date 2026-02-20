@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { cart, removeFromCart, clearCart } from "@/stores/cart"; // Store yolunun doğru olduğundan emin ol
+import { cart, removeFromCart, clearCart } from "@/stores/cart";
 
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
