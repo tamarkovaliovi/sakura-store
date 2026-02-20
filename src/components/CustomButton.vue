@@ -1,9 +1,11 @@
 <script setup>
-defineProps({
+const props = defineProps({
   mode: String,
   loading: Boolean,
   product: Object,
+  item: Object,
 });
+
 defineEmits(["click", "logout"]);
 </script>
 
