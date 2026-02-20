@@ -52,6 +52,7 @@ const fetchProducts = async () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
+
 watch(
   () => route.query.search,
   () => {
@@ -111,6 +112,7 @@ onMounted(() => {
   fetchProducts();
 });
 </script>
+
 <template>
   <div class="page-wrapper">
     <Header />
@@ -134,50 +136,37 @@ onMounted(() => {
           class="flex justify-center items-center gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-pink-100 max-w-6xl mx-auto flex-wrap"
         >
           <div class="flex items-center gap-2 border-r border-gray-100 pr-4">
-            <button
+            <CustomButton
+              mode="filter"
+              :isActive="selectedCategory === null"
               @click="filterByCategory(null)"
-              :class="[
-                'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-                selectedCategory === null
-                  ? 'bg-pink-500 text-white shadow-md'
-                  : 'bg-gray-50 text-gray-600 hover:bg-pink-50',
-              ]"
             >
               Hepsi
-            </button>
-            <button
+            </CustomButton>
+
+            <CustomButton
+              mode="filter"
+              :isActive="selectedCategory === 1"
               @click="filterByCategory(1)"
-              :class="[
-                'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-                selectedCategory === 1
-                  ? 'bg-pink-500 text-white shadow-md'
-                  : 'bg-gray-50 text-gray-600 hover:bg-pink-50',
-              ]"
             >
               Giysi
-            </button>
-            <button
+            </CustomButton>
+
+            <CustomButton
+              mode="filter"
+              :isActive="selectedCategory === 2"
               @click="filterByCategory(2)"
-              :class="[
-                'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-                selectedCategory === 2
-                  ? 'bg-pink-500 text-white shadow-md'
-                  : 'bg-gray-50 text-gray-600 hover:bg-pink-50',
-              ]"
             >
               Elektronik
-            </button>
-            <button
+            </CustomButton>
+
+            <CustomButton
+              mode="filter"
+              :isActive="selectedCategory === 3"
               @click="filterByCategory(3)"
-              :class="[
-                'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-                selectedCategory === 3
-                  ? 'bg-pink-500 text-white shadow-md'
-                  : 'bg-gray-50 text-gray-600 hover:bg-pink-50',
-              ]"
             >
               Mobilya
-            </button>
+            </CustomButton>
           </div>
 
           <div class="flex items-center gap-3 border-r border-gray-100 pr-4 px-2">
@@ -197,18 +186,10 @@ onMounted(() => {
               placeholder="Max $"
               class="w-24 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none transition-all"
             />
-            <button
-              @click="fetchProducts"
-              class="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-pink-600 transition-all active:scale-95"
-            >
-              Uygula
-            </button>
-            <button
-              @click="clearFilters"
-              class="px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all border border-red-100"
-            >
-              Temizle
-            </button>
+
+            <CustomButton mode="apply" @click="fetchProducts"> Uygula </CustomButton>
+
+            <CustomButton mode="clear" @click="clearFilters"> Temizle </CustomButton>
           </div>
 
           <div class="pl-2">
@@ -271,12 +252,9 @@ onMounted(() => {
         <p class="text-gray-500 mt-2">
           Farklı bir anahtar kelime veya filtre denemeye ne dersiniz?
         </p>
-        <button
-          @click="clearFilters"
-          class="mt-6 text-pink-500 font-bold hover:underline"
-        >
+        <CustomButton mode="clear" class="mt-6" @click="clearFilters">
           Tüm ürünlere geri dön
-        </button>
+        </CustomButton>
       </div>
     </main>
 
@@ -284,85 +262,28 @@ onMounted(() => {
       v-if="products.length > 0"
       class="flex justify-center items-center gap-6 mt-10 mb-20"
     >
-      <button
-        @click="changePage(-1)"
+      <CustomButton
+        mode="pagination"
+        direction="left"
         :disabled="currentPage === 1"
-        :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
-        class="pagination-btn"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-      </button>
+        @click="changePage(-1)"
+      />
+
       <div class="current-page-badge">{{ currentPage }}</div>
-      <button
-        @click="changePage(1)"
+
+      <CustomButton
+        mode="pagination"
+        direction="right"
         :disabled="products.length < limit"
-        :class="{ 'opacity-50 cursor-not-allowed': products.length < limit }"
-        class="pagination-btn"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
-      </button>
+        @click="changePage(1)"
+      />
     </div>
 
     <AppFooter />
   </div>
 </template>
+
 <style scoped>
-.toolbar-wrapper {
-  @apply flex justify-center mt-10 px-4;
-}
-
-.toolbar-content {
-  @apply flex flex-wrap items-center gap-6 bg-white p-4 rounded-2xl shadow-md border border-gray-100;
-}
-
-.toolbar-group {
-  @apply flex items-center gap-3 pr-6 border-r border-gray-100 last:border-none last:pr-0;
-}
-
-.toolbar-label {
-  @apply text-sm font-bold text-gray-400 uppercase tracking-wider;
-}
-
-.price-input {
-  @apply w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-200 focus:outline-none transition-all;
-}
-
-.apply-btn {
-  @apply px-4 py-2 bg-gray-800 text-white text-sm font-bold rounded-lg hover:bg-black transition-colors;
-}
-
-.filter-btn {
-  @apply px-4 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:bg-pink-50 hover:text-pink-600 transition-all;
-}
-
-.filter-btn.active {
-  @apply bg-pink-50 text-pink-600 shadow-sm;
-}
-
 .page-wrapper {
   @apply min-h-screen flex flex-col font-sans bg-gray-50;
 }
@@ -377,10 +298,6 @@ onMounted(() => {
 
 .bg-text-content {
   @apply text-[10rem] font-bold text-blue-400 uppercase tracking-widest transform scale-110;
-}
-
-.header-content {
-  @apply relative z-10;
 }
 
 .page-title {
@@ -455,28 +372,7 @@ onMounted(() => {
   @apply text-xl font-bold text-gray-900;
 }
 
-.pagination-btn {
-  @apply flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-full shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-all duration-200;
-}
-
-.pagination-btn:active {
-  @apply transform scale-95;
-}
-
-.pagination-btn:disabled {
-  @apply bg-gray-100 text-gray-400 border-gray-100 shadow-none cursor-not-allowed transform-none;
-}
-.filter-section {
-  @apply flex justify-center my-6 px-4;
-}
-.filter-container {
-  @apply flex flex-wrap gap-2 p-2 bg-white rounded-full shadow-sm border border-pink-100;
-}
-.filter-btn {
-  @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:bg-pink-50;
-}
-.filter-btn.active {
-  background-color: #ffb7c5;
-  @apply text-white shadow-inner;
+.current-page-badge {
+  @apply w-10 h-10 flex items-center justify-center bg-pink-500 text-white rounded-full font-bold shadow-md;
 }
 </style>
