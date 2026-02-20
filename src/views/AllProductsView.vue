@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { addToCart } from "@/stores/cart";
 
 import Header from "@/components/Header.vue";
@@ -11,6 +11,7 @@ import tukendiImage from "@/components/pictures/tukendi.jpg";
 const products = ref([]);
 const loading = ref(true);
 const router = useRouter();
+const route = useRoute();
 
 const currentPage = ref(1);
 const limit = 20;
@@ -22,16 +23,17 @@ const fetchProducts = async () => {
   loading.value = true;
   const offset = (currentPage.value - 1) * limit;
   let url = `https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=${limit}`;
+  const searchQuery = route.query.search;
+  if (searchQuery) {
+    url += `&title=${searchQuery}`;
+  }
   if (selectedCategory.value !== null) {
     url += `&categoryId=${selectedCategory.value}`;
   }
-
-  if (minPrice.value !== "" && maxPrice.value === "") {
-    url += `&price_min=${minPrice.value}&price_max=999999`;
-  } else if (minPrice.value === "" && maxPrice.value !== "") {
-    url += `&price_min=0&price_max=${maxPrice.value}`;
-  } else if (minPrice.value !== "" && maxPrice.value !== "") {
-    url += `&price_min=${minPrice.value}&price_max=${maxPrice.value}`;
+  if (minPrice.value !== "" || maxPrice.value !== "") {
+    const min = minPrice.value || 0;
+    const max = maxPrice.value || 999999;
+    url += `&price_min=${min}&price_max=${max}`;
   }
 
   try {
@@ -50,6 +52,14 @@ const fetchProducts = async () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
+watch(
+  () => route.query.search,
+  () => {
+    currentPage.value = 1;
+    fetchProducts();
+  }
+);
+
 const filterByCategory = (id) => {
   selectedCategory.value = id;
   currentPage.value = 1;
@@ -61,6 +71,7 @@ const clearFilters = () => {
   minPrice.value = "";
   maxPrice.value = "";
   currentPage.value = 1;
+  router.push("/Allproducts");
   fetchProducts();
 };
 
@@ -111,7 +122,11 @@ onMounted(() => {
 
       <div class="header-content relative z-10 px-4">
         <h1 class="page-title text-3xl md:text-5xl font-extrabold mb-4">Tüm Ürünler</h1>
-        <p class="page-subtitle mb-8">
+
+        <p v-if="route.query.search" class="page-subtitle mb-8 text-pink-600 font-bold">
+          "{{ route.query.search }}" için sonuçlar listeleniyor...
+        </p>
+        <p v-else class="page-subtitle mb-8">
           En yeni koleksiyonumuzu keşfedin, tarzınızı yansıtan parçaları bulun.
         </p>
 
@@ -209,7 +224,7 @@ onMounted(() => {
         <p class="text-xl">Ürünler yükleniyor...</p>
       </div>
 
-      <div v-else class="product-grid">
+      <div v-else-if="products.length > 0" class="product-grid">
         <div v-for="product in products" :key="product.id" class="product-card group">
           <div class="card-image-wrapper">
             <img
@@ -225,24 +240,16 @@ onMounted(() => {
             <router-link
               :to="{ name: 'EditProduct', params: { id: product.id } }"
               class="action-link edit"
+              >Düzenle</router-link
             >
-              Düzenle
-            </router-link>
-
             <button @click="deleteProduct(product.id)" class="action-link delete">
               Sil
             </button>
           </div>
 
           <div class="card-body">
-            <span class="category-tag">
-              {{ product.category.name }}
-            </span>
-
-            <h3 class="product-title">
-              {{ product.title }}
-            </h3>
-
+            <span class="category-tag">{{ product.category.name }}</span>
+            <h3 class="product-title">{{ product.title }}</h3>
             <div class="card-footer">
               <span class="product-price">${{ product.price }}</span>
               <CustomButton
@@ -254,9 +261,29 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <div
+        v-else
+        class="text-center py-20 bg-white rounded-3xl shadow-sm border border-dashed border-gray-200"
+      >
+        <div class="text-5xl mb-4">🔍</div>
+        <h2 class="text-2xl font-bold text-gray-800">Aradığınız ürün bulunamadı</h2>
+        <p class="text-gray-500 mt-2">
+          Farklı bir anahtar kelime veya filtre denemeye ne dersiniz?
+        </p>
+        <button
+          @click="clearFilters"
+          class="mt-6 text-pink-500 font-bold hover:underline"
+        >
+          Tüm ürünlere geri dön
+        </button>
+      </div>
     </main>
 
-    <div class="flex justify-center items-center gap-6 mt-10 mb-20">
+    <div
+      v-if="products.length > 0"
+      class="flex justify-center items-center gap-6 mt-10 mb-20"
+    >
       <button
         @click="changePage(-1)"
         :disabled="currentPage === 1"
@@ -277,11 +304,7 @@ onMounted(() => {
           <path d="m15 18-6-6 6-6" />
         </svg>
       </button>
-
-      <div class="current-page-badge">
-        {{ currentPage }}
-      </div>
-
+      <div class="current-page-badge">{{ currentPage }}</div>
       <button
         @click="changePage(1)"
         :disabled="products.length < limit"
