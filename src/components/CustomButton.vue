@@ -4,6 +4,9 @@ const props = defineProps({
   loading: Boolean,
   product: Object,
   item: Object,
+  isActive: Boolean,
+  disabled: Boolean,
+  direction: String,
 });
 
 defineEmits(["click", "logout"]);
@@ -11,7 +14,77 @@ defineEmits(["click", "logout"]);
 
 <template>
   <button
-    v-if="mode === 'add'"
+    v-if="mode === 'filter'"
+    @click="$emit('click')"
+    :class="[
+      'px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200',
+      isActive
+        ? 'bg-pink-500 text-white shadow-md transform scale-105'
+        : 'bg-gray-50 text-gray-600 hover:bg-pink-50 hover:text-pink-500',
+    ]"
+  >
+    <slot></slot>
+  </button>
+
+  <button
+    v-else-if="mode === 'apply'"
+    @click="$emit('click')"
+    class="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-pink-600 transition-all active:scale-95"
+  >
+    <slot>Uygula</slot>
+  </button>
+
+  <button
+    v-else-if="mode === 'clear'"
+    @click="$emit('click')"
+    class="px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all border border-red-100"
+  >
+    <slot>Temizle</slot>
+  </button>
+
+  <button
+    v-else-if="mode === 'pagination'"
+    @click="$emit('click')"
+    :disabled="disabled"
+    :class="[
+      'flex items-center justify-center w-10 h-10 bg-white border border-gray-200 rounded-full shadow-sm transition-all',
+      disabled
+        ? 'opacity-30 cursor-not-allowed'
+        : 'hover:bg-gray-50 hover:border-pink-300 text-gray-700',
+    ]"
+  >
+    <svg
+      v-if="direction === 'left'"
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+    <svg
+      v-else
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  </button>
+
+  <button
+    v-else-if="mode === 'add'"
     @click="$emit('click')"
     class="absolute bottom-4 right-4 bg-white text-dark p-3 rounded-full shadow-lg transition-all duration-300 hover:bg-primary hover:text-white hover:scale-110 group-hover:bottom-6"
   >
@@ -86,7 +159,6 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'clear-search'"
-    @click="clearSearch"
     class="bg-blue-900 text-white px-6 py-3 rounded-full hover:bg-blue-800 transition shadow-lg"
   >
     <slot>Tüm Ürünleri Göster</slot>
@@ -137,7 +209,6 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'search'"
-    @click="handleSearch"
     class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 bg-blue-900 text-white rounded-full hover:bg-blue-800 transition"
   >
     <svg
@@ -244,7 +315,7 @@ defineEmits(["click", "logout"]);
   </button>
 
   <button
-    v-if="mode === 'add-product-add'"
+    v-else-if="mode === 'add-product-add'"
     :disabled="loading"
     type="submit"
     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
@@ -270,12 +341,11 @@ defineEmits(["click", "logout"]);
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       ></path>
     </svg>
-
     {{ loading ? "Ekleniyor..." : "Ürünü Kaydet" }}
   </button>
 
   <router-link
-    v-if="mode === 'nav-all-products'"
+    v-else-if="mode === 'nav-all-products'"
     to="/products"
     class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition duration-200 border border-gray-200 rounded-lg hover:border-blue-300"
   >
@@ -283,7 +353,7 @@ defineEmits(["click", "logout"]);
   </router-link>
 
   <button
-    v-if="mode === 'add-to-cart'"
+    v-else-if="mode === 'add-to-cart'"
     @click="$emit('click')"
     class="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2 px-4 rounded-md transition-all duration-200 shadow-sm hover:shadow-md"
   >
@@ -297,12 +367,11 @@ defineEmits(["click", "logout"]);
     >
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
     </svg>
-
     <slot>Sepete Ekle</slot>
   </button>
 
   <button
-    v-if="mode === 'add-product-green'"
+    v-else-if="mode === 'add-product-green'"
     @click="$emit('click')"
     class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition-transform transform hover:scale-105"
   >

@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import localBanner from "@/components/pictures/home.jpg";
+import tukendiImage from "@/components/pictures/tukendi.jpg";
 import CustomButton from "@/components/CustomButton.vue";
 import { addToCart } from "@/stores/cart";
 
@@ -32,8 +33,10 @@ const fetchProducts = async () => {
 };
 
 const formatImage = (imgUrl) => {
-  if (!imgUrl) return "https://via.placeholder.com/300";
-  return imgUrl.replace(/[\[\]"]/g, "");
+  if (!imgUrl) return tukendiImage;
+  let cleaned = imgUrl.replace(/[\[\]"]/g, "");
+  if (!cleaned.startsWith("http")) return tukendiImage;
+  return cleaned;
 };
 
 onMounted(() => {
