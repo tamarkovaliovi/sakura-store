@@ -9,6 +9,7 @@ import CustomButton from "@/components/CustomButton.vue";
 import tukendiImage from "@/components/pictures/tukendi.jpg";
 
 const products = ref([]);
+const categories = ref([]);
 const loading = ref(true);
 const router = useRouter();
 const route = useRoute();
@@ -19,17 +20,34 @@ const selectedCategory = ref(null);
 const minPrice = ref("");
 const maxPrice = ref("");
 
+const fetchCategories = async () => {
+  try {
+    const response = await fetch("https://api.escuelajs.co/api/v1/categories");
+    const data = await response.json();
+    categories.value = data;
+  } catch (error) {
+    console.error("Kategoriler yüklenirken hata oluştu:", error);
+  }
+};
+
 const fetchProducts = async () => {
   loading.value = true;
   const offset = (currentPage.value - 1) * limit;
-  let url = `https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=${limit}`;
-  const searchQuery = route.query.search;
-  if (searchQuery) {
-    url += `&title=${searchQuery}`;
+  let url = "";
+  if (selectedCategory.value !== null && !route.query.search) {
+    url = `https://api.escuelajs.co/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
+  } else {
+    url = `https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=${limit}`;
+
+    if (route.query.search) {
+      url += `&title=${route.query.search}`;
+    }
+
+    if (selectedCategory.value !== null) {
+      url += `&categoryId=${selectedCategory.value}`;
+    }
   }
-  if (selectedCategory.value !== null) {
-    url += `&categoryId=${selectedCategory.value}`;
-  }
+
   if (minPrice.value !== "" || maxPrice.value !== "") {
     const min = minPrice.value || 0;
     const max = maxPrice.value || 999999;
@@ -110,6 +128,7 @@ const formatImage = (imgurl) => {
 
 onMounted(() => {
   fetchProducts();
+  fetchCategories();
 });
 </script>
 
@@ -135,7 +154,7 @@ onMounted(() => {
         <div
           class="flex justify-center items-center gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-pink-100 max-w-6xl mx-auto flex-wrap"
         >
-          <div class="flex items-center gap-2 border-r border-gray-100 pr-4">
+          <div class="flex items-center gap-2 border-r border-gray-100 pr-4 flex-wrap">
             <CustomButton
               mode="filter"
               :isActive="selectedCategory === null"
@@ -145,27 +164,13 @@ onMounted(() => {
             </CustomButton>
 
             <CustomButton
+              v-for="cat in categories"
+              :key="cat.id"
               mode="filter"
-              :isActive="selectedCategory === 1"
-              @click="filterByCategory(1)"
+              :isActive="selectedCategory === cat.id"
+              @click="filterByCategory(cat.id)"
             >
-              Giysi
-            </CustomButton>
-
-            <CustomButton
-              mode="filter"
-              :isActive="selectedCategory === 2"
-              @click="filterByCategory(2)"
-            >
-              Elektronik
-            </CustomButton>
-
-            <CustomButton
-              mode="filter"
-              :isActive="selectedCategory === 3"
-              @click="filterByCategory(3)"
-            >
-              Mobilya
+              {{ cat.name }}
             </CustomButton>
           </div>
 

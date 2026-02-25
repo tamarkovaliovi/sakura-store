@@ -4,7 +4,7 @@
   <div class="min-h-screen bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <h1 class="text-3xl font-extrabold text-blue-900 mb-8 flex items-center">
-        <span class="mr-3 text-pink-500">🌸</span> SakuraStore - Kategori Yönetimi
+        <span class="mr-3 text-pink-500"></span> SakuraStore - Kategori Yönetimi
       </h1>
 
       <div class="bg-gray-50 p-6 rounded-2xl shadow-sm border border-gray-100 mb-10">
@@ -55,15 +55,17 @@
         <div
           v-for="cat in categories"
           :key="cat.id"
-          class="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition duration-300"
+          class="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition duration-300 flex flex-col"
         >
           <img
-            :src="cat.image"
+            :src="formatCategoryImage(cat.image)"
             :alt="cat.name"
-            class="w-full h-40 object-cover rounded-xl mb-4"
-            onerror="this.src='https://via.placeholder.com/150'"
+            class="w-full h-40 object-cover rounded-xl mb-4 bg-gray-100"
+            @error="
+              (e) => (e.target.src = 'https://placehold.co/600x400?text=Resim+Bulunamadi')
+            "
           />
-          <div class="text-center">
+          <div class="text-center flex-grow">
             <h4 class="font-bold text-gray-900 text-lg mb-1">{{ cat.name }}</h4>
             <p class="text-gray-400 text-xs mb-4 uppercase tracking-widest font-semibold">
               ID: {{ cat.id }}
@@ -108,12 +110,23 @@ const categoryForm = ref({
   image: "",
 });
 
+// Resim URL'sini temizleyen fonksiyon
+const formatCategoryImage = (url) => {
+  if (!url) return "https://placehold.co/600x400?text=Resim+Yok";
+  // Bazı URL'ler ["url"] şeklinde dizi gibi gelebiliyor, onları temizler
+  let cleaned = url.replace(/[\[\]"]/g, "");
+  return cleaned;
+};
+
 const fetchCategories = async () => {
   try {
     const response = await axios.get(apiUrl);
-    categories.value = response.data;
+    // Konsoldaki hatalara sebep olan "string" isimli test verilerini filtreliyoruz
+    categories.value = response.data.filter(
+      (c) => c.name && c.name !== "string" && c.name !== "New Category"
+    );
   } catch (error) {
-    console.error("Kategoriler yüklenirken hata oluştu:", error);
+    console.error("Kategoriler yüklenirken hata:", error);
   }
 };
 
@@ -134,7 +147,11 @@ const createCategory = async () => {
 
 const prepareEdit = (category) => {
   isEditing.value = true;
-  categoryForm.value = { ...category };
+  categoryForm.value = {
+    id: category.id,
+    name: category.name,
+    image: formatCategoryImage(category.image),
+  };
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
@@ -157,7 +174,7 @@ const deleteCategory = async (id) => {
       await axios.delete(`${apiUrl}/${id}`);
       fetchCategories();
     } catch (error) {
-      alert("Bu kategori silinemez (Bağlı ürünler veya API kısıtlaması).");
+      alert("Bu kategori silinemez (Bağlı ürünler olabilir).");
     }
   }
 };
