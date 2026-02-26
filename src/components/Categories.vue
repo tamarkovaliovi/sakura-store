@@ -103,7 +103,7 @@ import AppFooter from "../components/AppFooter.vue";
 
 const categories = ref([]);
 const isEditing = ref(false);
-const apiUrl = "https://api.escuelajs.co/api/v1/categories";
+const apiUrl = "/api/v1/categories";
 const categoryForm = ref({
   id: null,
   name: "",

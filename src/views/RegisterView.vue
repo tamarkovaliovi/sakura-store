@@ -80,7 +80,7 @@ const handleRegister = async () => {
   )}&background=0D47A1&color=fff`;
 
   try {
-    const response = await fetch("https://api.escuelajs.co/api/v1/users/", {
+    const response = await fetch("/api/v1/users/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

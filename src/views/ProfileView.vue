@@ -18,7 +18,7 @@ const fetchUserProfile = async () => {
   }
 
   try {
-    const response = await fetch("https://api.escuelajs.co/api/v1/auth/profile", {
+    const response = await fetch("/api/v1/auth/profile", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
