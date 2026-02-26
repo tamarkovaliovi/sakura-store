@@ -61,7 +61,7 @@ const loading = ref(false);
 const handleLogin = async () => {
   loading.value = true;
   try {
-    const response = await fetch("https://api.escuelajs.co/api/v1/auth/login", {
+    const response = await fetch("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -82,7 +82,7 @@ const handleLogin = async () => {
       localStorage.setItem("user_token", data.access_token);
 
       const profileResponse = await fetch(
-        "https://api.escuelajs.co/api/v1/auth/profile",
+        "/api/v1/auth/profile",
         {
           headers: { Authorization: `Bearer ${data.access_token}` },
         }

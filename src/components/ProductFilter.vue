@@ -103,11 +103,11 @@ const fetchProducts = async () => {
       isSearching.value = true;
       searchKeyword.value = route.query.q;
      
-      url = `https://api.escuelajs.co/api/v1/products/?title=${route.query.q}`;
+      url = `/api/v1/products/?title=${route.query.q}`;
     } else {
     
       isSearching.value = false;
-      url = 'https://api.escuelajs.co/api/v1/products/?categoryId=1&offset=0&limit=40';
+      url = '/api/v1/products/?categoryId=1&offset=0&limit=40';
     }
 
     const response = await fetch(url);
