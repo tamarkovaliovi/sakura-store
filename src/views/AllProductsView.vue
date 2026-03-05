@@ -21,16 +21,22 @@ const minPrice = ref("");
 const maxPrice = ref("");
 const isDropdownOpen = ref(false);
 
+// Render/Production uyumluluğu için Base URL
+const API_BASE_URL = "https://api.escuelajs.co";
+
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value;
 };
+
 const selectCategory = (id) => {
   filterByCategory(id);
   isDropdownOpen.value = false;
 };
+
 const fetchCategories = async () => {
   try {
-    const response = await fetch("/api/v1/categories");
+    // URL mutlak yol olarak güncellendi
+    const response = await fetch(`${API_BASE_URL}/api/v1/categories`);
     const data = await response.json();
     categories.value = data;
   } catch (error) {
@@ -42,10 +48,12 @@ const fetchProducts = async () => {
   loading.value = true;
   const offset = (currentPage.value - 1) * limit;
   let url = "";
+
+  // Dinamik URL oluşturma mantığı Production Base URL ile birleştirildi
   if (selectedCategory.value !== null && !route.query.search) {
-    url = `/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
+    url = `${API_BASE_URL}/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
   } else {
-    url = `/api/v1/products?offset=${offset}&limit=${limit}`;
+    url = `${API_BASE_URL}/api/v1/products?offset=${offset}&limit=${limit}`;
 
     if (route.query.search) {
       url += `&title=${route.query.search}`;
@@ -115,7 +123,8 @@ const goToAddProduct = () => {
 const deleteProduct = async (id) => {
   if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
   try {
-    const response = await fetch(`/api/v1/products/${id}`, {
+    // Silme işlemi için mutlak URL kullanıldı
+    const response = await fetch(`${API_BASE_URL}/api/v1/products/${id}`, {
       method: "DELETE",
     });
     if (response.ok) {

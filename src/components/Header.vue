@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
+// cart'ın bir ref olduğunu varsayıyoruz (hata bunu gösteriyor)
 import { cart } from "../stores/cart";
 import CustomButoon from "./CustomButton.vue";
 
@@ -24,14 +25,18 @@ onMounted(() => {
   }
 });
 
+// KRİTİK DÜZELTME: cart.value.reduce kullanıldı
 const totalQuantity = computed(() => {
-  return cart.reduce((acc, item) => {
+  if (!cart.value) return 0;
+  return cart.value.reduce((acc, item) => {
     return acc + (item.quantity || 1);
   }, 0);
 });
 
+// KRİTİK DÜZELTME: cart.value.reduce kullanıldı
 const cartTotal = computed(() => {
-  return cart
+  if (!cart.value) return "0.00";
+  return cart.value
     .reduce((acc, item) => {
       return acc + item.price * (item.quantity || 1);
     }, 0)
@@ -137,7 +142,6 @@ watch(searchQuery, (newVal) => {
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-
               <span
                 class="ml-2 text-sm font-bold text-gray-600 group-hover:text-blue-900 hidden xl:block"
               >
@@ -176,7 +180,7 @@ watch(searchQuery, (newVal) => {
             </div>
           </RouterLink>
 
-          <RouterLink to="/cart" class="relative group">
+          <RouterLink to="/cart" class="relative group flex items-center">
             <div class="bg-gray-100 p-2 rounded-full group-hover:bg-blue-50 transition">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -192,14 +196,14 @@ watch(searchQuery, (newVal) => {
                   d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                 />
               </svg>
+              <span
+                v-if="totalQuantity > 0"
+                class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white"
+              >
+                {{ totalQuantity }}
+              </span>
             </div>
-            <span
-              v-if="totalQuantity > 0"
-              class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white"
-            >
-              {{ totalQuantity }}
-            </span>
-            <div class="hidden xl:block absolute top-1 left-10 w-20">
+            <div class="hidden xl:block ml-2 text-left">
               <p class="text-xs text-gray-500">Sepet</p>
               <p class="text-sm font-bold text-gray-800">${{ cartTotal }}</p>
             </div>

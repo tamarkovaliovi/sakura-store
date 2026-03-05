@@ -11,6 +11,9 @@ const homeImage = localBanner;
 const products = ref([]);
 const loading = ref(true);
 
+// Render/Production uyumluluğu için Base URL
+const API_BASE_URL = "https://api.escuelajs.co";
+
 const scrollToProducts = () => {
   const element = document.getElementById("products-section");
   if (element) {
@@ -20,9 +23,8 @@ const scrollToProducts = () => {
 
 const fetchProducts = async () => {
   try {
-    const response = await fetch(
-      "/api/v1/products?offset=0&limit=20"
-    );
+    // URL mutlak yol ve HTTPS olarak güncellendi
+    const response = await fetch(`${API_BASE_URL}/api/v1/products?offset=0&limit=20`);
     const data = await response.json();
     products.value = data;
   } catch (error) {
@@ -78,7 +80,9 @@ onMounted(() => {
                 :src="formatImage(product.images[0])"
                 :alt="product.title"
                 class="card-image"
-                @error="$event.target.src = 'https://via.placeholder.com/300'"
+                @error="
+                  $event.target.src = 'https://placehold.co/300x300?text=SakuraStore'
+                "
               />
             </div>
           </router-link>

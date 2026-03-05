@@ -16,18 +16,21 @@ const categories = ref([]);
 const isModalOpen = ref(false);
 const newCategoryData = reactive({
   name: "",
-  image: "https://picsum.photos/640/480",
+  image: "https://placehold.co/640x480?text=Kategori", // Daha stabil HTTPS placeholder
 });
 
 const productId = route.params.id;
 const isEditMode = computed(() => !!productId);
+
+// Render/Production uyumluluğu için Base URL
+const API_BASE_URL = "https://api.escuelajs.co";
 
 const productData = reactive({
   title: "",
   price: 1,
   description: "",
   categoryId: 1,
-  images: ["https://picsum.photos/640/480"],
+  images: ["https://placehold.co/640x480?text=SakuraStore"], // HTTPS uyumlu placeholder
 });
 
 onMounted(async () => {
@@ -39,7 +42,7 @@ onMounted(async () => {
 
 const fetchCategories = async () => {
   try {
-    const res = await fetch("/api/v1/categories");
+    const res = await fetch(`${API_BASE_URL}/api/v1/categories`);
     if (res.ok) {
       categories.value = await res.json();
     }
@@ -51,7 +54,7 @@ const fetchCategories = async () => {
 const fetchProductDetails = async () => {
   isLoading.value = true;
   try {
-    const res = await fetch(`/api/v1/products/${productId}`);
+    const res = await fetch(`${API_BASE_URL}/api/v1/products/${productId}`);
     if (!res.ok) throw new Error("Ürün bulunamadı!");
 
     const data = await res.json();
@@ -74,7 +77,7 @@ const handleCreateCategory = async () => {
   }
 
   try {
-    const response = await fetch("/api/v1/categories", {
+    const response = await fetch(`${API_BASE_URL}/api/v1/categories`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newCategoryData),
@@ -108,8 +111,8 @@ const handleSubmit = async () => {
   message.value = isEditMode.value ? "Ürün güncelleniyor..." : "Ürün kaydediliyor...";
 
   const url = isEditMode.value
-    ? `/api/v1/products/${productId}`
-    : "/api/v1/products/";
+    ? `${API_BASE_URL}/api/v1/products/${productId}`
+    : `${API_BASE_URL}/api/v1/products/`;
 
   const method = isEditMode.value ? "PUT" : "POST";
 
@@ -117,7 +120,13 @@ const handleSubmit = async () => {
     const response = await fetch(url, {
       method: method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(productData),
+      body: JSON.stringify({
+        title: productData.title,
+        price: productData.price,
+        description: productData.description,
+        categoryId: productData.categoryId,
+        images: productData.images,
+      }),
     });
 
     const result = await response.json();
