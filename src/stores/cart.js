@@ -1,37 +1,53 @@
 // src/stores/cart.js
-import { reactive, watch } from 'vue';
+import { ref, watch } from 'vue';
 
-// 1. LocalStorage'dan eski sepeti çek (Varsa)
-const savedCart = JSON.parse(localStorage.getItem('my_cart')) || [];
+// 1. Güvenli yükleme: LocalStorage verisini hata kontrolüyle çekiyoruz
+const getSavedCart = () => {
+  try {
+    const data = localStorage.getItem('my_cart');
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    console.error("Sepet verisi okunamadı, sıfırlanıyor.");
+    return [];
+  }
+};
 
-// 2. Sepet verisini reaktif (canlı) yap
-export const cart = reactive(savedCart);
+// 2. 'ref' kullanımı dizilerde daha stabil bir reaktiflik sağlar
+export const cart = ref(getSavedCart());
 
-// 3. Sepete Ekleme Fonksiyonu
+// 3. Sepete Ekleme
 export const addToCart = (product) => {
-  const existingItem = cart.find(item => item.id === product.id);
+  const existingItem = cart.value.find(item => item.id === product.id);
   
   if (existingItem) {
-    existingItem.quantity++; // Varsa adedini artır
+    existingItem.quantity++;
   } else {
-    cart.push({ ...product, quantity: 1 }); // Yoksa yeni ekle
+    // API'den gelen veriye göre 'images' veya 'title' kontrolü eklenebilir
+    cart.value.push({ ...product, quantity: 1 });
   }
 };
 
-// 4. Sepetten Silme Fonksiyonu
+// 4. Adet Azaltma (Kullanıcı sepet sayfasında '-' tuşuna basarsa)
+export const decreaseQuantity = (productId) => {
+  const item = cart.value.find(item => item.id === productId);
+  if (item && item.quantity > 1) {
+    item.quantity--;
+  } else {
+    removeFromCart(productId); // Adet 1'den küçükse sepetten sil
+  }
+};
+
+// 5. Sepetten Tamamen Silme
 export const removeFromCart = (productId) => {
-  const index = cart.findIndex(item => item.id === productId);
-  if (index > -1) {
-    cart.splice(index, 1);
-  }
+  cart.value = cart.value.filter(item => item.id !== productId);
 };
 
-// 5. Sepeti Temizle
+// 6. Sepeti Temizle
 export const clearCart = () => {
-  cart.splice(0, cart.length);
+  cart.value = [];
 };
 
-// 6. Her değişiklikte LocalStorage'a kaydet (Sayfa yenilenince gitmesin)
-watch(cart, () => {
-  localStorage.setItem('my_cart', JSON.stringify(cart));
+// 7. LocalStorage Kaydı
+watch(cart, (newCart) => {
+  localStorage.setItem('my_cart', JSON.stringify(newCart));
 }, { deep: true });

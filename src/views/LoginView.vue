@@ -1,3 +1,68 @@
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import CustomButton from "@/components/CustomButton.vue";
+
+const router = useRouter();
+const email = ref("");
+const password = ref("");
+const loading = ref(false);
+const errorMsg = ref("");
+
+// Render ve canlı ortam uyumluluğu için Base URL
+const API_BASE_URL = "https://api.escuelajs.co";
+
+const handleLogin = async () => {
+  loading.value = true;
+  errorMsg.value = "";
+
+  try {
+    // URL mutlak yol ve HTTPS olarak güncellendi
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      errorMsg.value = data.message || "Giriş bilgileri hatalı!";
+      return;
+    }
+
+    if (data.access_token) {
+      localStorage.setItem("user_token", data.access_token);
+
+      // Profil isteği için de mutlak URL kullanıldı
+      const profileResponse = await fetch(`${API_BASE_URL}/api/v1/auth/profile`, {
+        headers: { Authorization: `Bearer ${data.access_token}` },
+      });
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+
+        localStorage.setItem("user_name", profileData.name);
+        localStorage.setItem("user_avatar", profileData.avatar);
+        localStorage.setItem("user_role", profileData.role);
+        localStorage.setItem("user_id", profileData.id);
+
+        // Uygulamayı ana sayfaya yönlendiriyoruz
+        window.location.href = "/";
+      }
+    }
+  } catch (error) {
+    console.error("Hata:", error);
+    errorMsg.value = "Sunucu hatası! Bağlantınızı kontrol edin.";
+  } finally {
+    loading.value = false;
+  }
+};
+</script>
+
 <template>
   <div class="login-container">
     <div class="login-card">
@@ -45,65 +110,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import CustomButton from "@/components/CustomButton.vue";
-
-const router = useRouter();
-const email = ref("");
-const password = ref("");
-const loading = ref(false);
-const errorMsg = ref("");
-
-const handleLogin = async () => {
-  loading.value = true;
-  errorMsg.value = "";
-
-  try {
-    const response = await fetch("/api/v1/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: email.value,
-        password: password.value,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      errorMsg.value = data.message || "Giriş bilgileri hatalı!";
-      return;
-    }
-
-    if (data.access_token) {
-      localStorage.setItem("user_token", data.access_token);
-
-      const profileResponse = await fetch("/api/v1/auth/profile", {
-        headers: { Authorization: `Bearer ${data.access_token}` },
-      });
-
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-
-        localStorage.setItem("user_name", profileData.name);
-        localStorage.setItem("user_avatar", profileData.avatar);
-        localStorage.setItem("user_role", profileData.role);
-        localStorage.setItem("user_id", profileData.id);
-
-        window.location.href = "/";
-      }
-    }
-  } catch (error) {
-    console.error("Hata:", error);
-    errorMsg.value = "Sunucu hatası! Bağlantınızı kontrol edin.";
-  } finally {
-    loading.value = false;
-  }
-};
-</script>
 
 <style scoped>
 .login-container {

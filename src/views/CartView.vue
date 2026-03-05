@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
+// cart verisinin bir ref([]) olduğunu varsayıyoruz
 import { cart, removeFromCart, clearCart } from "@/stores/cart";
 
 import Header from "@/components/Header.vue";
@@ -10,15 +11,17 @@ import CustomButton from "@/components/CustomButton.vue";
 const locations = ref([]);
 const searchQuery = ref("");
 const isLocationModalOpen = ref(false);
-const viewMode = ref("list"); // 'list' veya 'grid'
+const viewMode = ref("list");
 const selectedLocation = ref(null);
 const isLoading = ref(false);
 
+// HESAPLAMA: Script içinde .value kullanılması ZORUNLUDUR
 const subtotal = computed(() => {
-  return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  // cart.value'nun dizi olduğundan emin oluyoruz
+  if (!cart.value || !Array.isArray(cart.value)) return 0;
+  return cart.value.reduce((total, item) => total + item.price * item.quantity, 0);
 });
 
-// API Entegrasyonu (Platzi Fake Store API)
 const fetchLocations = async () => {
   if (locations.value.length > 0) {
     isLocationModalOpen.value = true;
@@ -28,6 +31,8 @@ const fetchLocations = async () => {
   isLoading.value = true;
   try {
     const response = await fetch("https://api.escuelajs.co/api/v1/locations");
+    if (!response.ok) throw new Error("API isteği başarısız.");
+
     const data = await response.json();
     locations.value = data;
     isLocationModalOpen.value = true;
@@ -39,7 +44,6 @@ const fetchLocations = async () => {
   }
 };
 
-// Filtreleme Mantığı
 const filteredLocations = computed(() => {
   return locations.value.filter(
     (loc) =>
@@ -50,9 +54,7 @@ const filteredLocations = computed(() => {
 
 const handleCompleteOrder = () => {
   if (!selectedLocation.value) return;
-  alert(
-    `Siparişiniz başarıyla alındı!\nTeslimat Noktası: ${selectedLocation.value.name}`
-  );
+  alert(`Siparişiniz alındı! Teslimat: ${selectedLocation.value.name}`);
   clearCart();
   isLocationModalOpen.value = false;
 };
@@ -65,7 +67,7 @@ const handleCompleteOrder = () => {
     <main class="main-content">
       <h1 class="page-title">Alışveriş Sepetim</h1>
 
-      <div v-if="cart.length === 0" class="empty-cart-container">
+      <div v-if="!cart || cart.length === 0" class="empty-cart-container">
         <div class="empty-icon-wrapper">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -95,7 +97,11 @@ const handleCompleteOrder = () => {
         <div class="cart-items-section">
           <div v-for="item in cart" :key="item.id" class="cart-item-card">
             <img
-              :src="item.images ? item.images[0] : 'https://via.placeholder.com/100'"
+              :src="
+                item.images && item.images[0]
+                  ? item.images[0]
+                  : 'https://placehold.co/100x100?text=No+Image'
+              "
               class="item-image"
               alt="Product"
             />
@@ -137,7 +143,6 @@ const handleCompleteOrder = () => {
                 &times;
               </button>
             </div>
-
             <div class="controls-row">
               <input
                 v-model="searchQuery"
@@ -160,7 +165,6 @@ const handleCompleteOrder = () => {
                 </button>
               </div>
             </div>
-
             <div :class="['locations-wrapper', viewMode]">
               <div
                 v-for="loc in filteredLocations"
@@ -178,7 +182,6 @@ const handleCompleteOrder = () => {
                 <div v-if="selectedLocation?.id === loc.id" class="check-mark">✓</div>
               </div>
             </div>
-
             <div v-if="selectedLocation" class="selection-footer">
               <p>
                 Seçilen Mağaza: <strong>{{ selectedLocation.name }}</strong>
@@ -216,13 +219,12 @@ const handleCompleteOrder = () => {
         </div>
       </div>
     </main>
-
     <AppFooter />
   </div>
 </template>
 
 <style scoped>
-/* Temel Düzen */
+/* Mevcut Tailwind stillerin aynen korunmuştur */
 .page-wrapper {
   @apply min-h-screen bg-gray-50 flex flex-col;
 }
@@ -238,8 +240,6 @@ const handleCompleteOrder = () => {
 .cart-items-section {
   @apply lg:col-span-2 space-y-6;
 }
-
-/* Ürün Kartları */
 .cart-item-card {
   @apply bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center;
 }
@@ -267,8 +267,6 @@ const handleCompleteOrder = () => {
 .quantity-wrapper {
   @apply flex items-center space-x-3 bg-gray-50 rounded-lg p-1;
 }
-
-/* Lokasyon Seçim Kutusu */
 .location-selection-box {
   @apply bg-white border-2 border-blue-50 rounded-2xl p-6 shadow-xl mt-8;
 }
@@ -290,8 +288,6 @@ const handleCompleteOrder = () => {
 .view-btns button.active {
   @apply bg-white shadow-sm text-blue-900;
 }
-
-/* Dinamik Liste Yapısı - Hatalar burada düzeltildi */
 .locations-wrapper.list {
   @apply space-y-3;
 }
@@ -300,7 +296,6 @@ const handleCompleteOrder = () => {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
-
 .location-item {
   @apply border border-gray-100 p-4 rounded-xl cursor-pointer transition hover:bg-gray-50 flex justify-between items-center bg-white;
 }
@@ -316,15 +311,12 @@ const handleCompleteOrder = () => {
 .check-mark {
   @apply text-blue-600 font-bold bg-blue-100 w-6 h-6 flex items-center justify-center rounded-full;
 }
-
 .selection-footer {
   @apply mt-8 pt-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4;
 }
 .final-submit-btn {
   @apply bg-blue-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition w-full md:w-auto;
 }
-
-/* Özet Alanı */
 .summary-card {
   @apply bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-4;
 }
@@ -340,8 +332,6 @@ const handleCompleteOrder = () => {
 .summary-actions {
   @apply mt-6 space-y-3;
 }
-
-/* Boş Sepet */
 .empty-cart-container {
   @apply bg-white rounded-2xl shadow-sm p-16 text-center border border-gray-100;
 }
@@ -354,7 +344,6 @@ const handleCompleteOrder = () => {
 .start-shopping-btn {
   @apply inline-block mt-6 bg-blue-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-800 transition;
 }
-
 .animate-in {
   animation: slideUp 0.4s ease-out;
 }

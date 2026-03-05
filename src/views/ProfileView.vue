@@ -11,6 +11,9 @@ const updating = ref(false);
 const showModal = ref(false);
 const user = ref({ name: "", email: "", avatar: "", role: "", id: null });
 
+// Render ve canlı ortam uyumluluğu için Base URL tanımlandı
+const API_BASE_URL = "https://api.escuelajs.co";
+
 const editForm = ref({
   name: "",
   avatar: "",
@@ -24,7 +27,8 @@ const fetchUserProfile = async () => {
   }
 
   try {
-    const response = await fetch("/api/v1/auth/profile", {
+    // URL, canlı ortamda Mixed Content hatası vermemesi için mutlak yola çevrildi
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/profile`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -52,7 +56,8 @@ const handleUpdateUser = async () => {
   const token = localStorage.getItem("user_token");
 
   try {
-    const response = await fetch(`/api/v1/users/${user.value.id}`, {
+    // Güncelleme isteği için mutlak URL kullanıldı
+    const response = await fetch(`${API_BASE_URL}/api/v1/users/${user.value.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
