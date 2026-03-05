@@ -30,7 +30,7 @@ const selectCategory = (id) => {
 };
 const fetchCategories = async () => {
   try {
-    const response = await fetch("https://api.escuelajs.co/api/v1/categories");
+    const response = await fetch("/api/v1/categories");
     const data = await response.json();
     categories.value = data;
   } catch (error) {
@@ -43,9 +43,9 @@ const fetchProducts = async () => {
   const offset = (currentPage.value - 1) * limit;
   let url = "";
   if (selectedCategory.value !== null && !route.query.search) {
-    url = `https://api.escuelajs.co/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
+    url = `/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
   } else {
-    url = `https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=${limit}`;
+    url = `/api/v1/products?offset=${offset}&limit=${limit}`;
 
     if (route.query.search) {
       url += `&title=${route.query.search}`;
@@ -115,7 +115,7 @@ const goToAddProduct = () => {
 const deleteProduct = async (id) => {
   if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
   try {
-    const response = await fetch(`https://api.escuelajs.co/api/v1/products/${id}`, {
+    const response = await fetch(`/api/v1/products/${id}`, {
       method: "DELETE",
     });
     if (response.ok) {

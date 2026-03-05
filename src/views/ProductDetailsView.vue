@@ -15,12 +15,12 @@ const fetchData = async (productId) => {
   loading.value = true;
   try {
     const productResponse = await fetch(
-      `https://api.escuelajs.co/api/v1/products/${productId}`
+      `/api/v1/products/${productId}`
     );
     product.value = await productResponse.json();
 
     const relatedResponse = await fetch(
-      `https://api.escuelajs.co/api/v1/products/${productId}/related`
+      `/api/v1/products/${productId}/related`
     );
     relatedProducts.value = await relatedResponse.json();
   } catch (error) {

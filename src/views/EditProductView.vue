@@ -39,7 +39,7 @@ onMounted(async () => {
 
 const fetchCategories = async () => {
   try {
-    const res = await fetch("https://api.escuelajs.co/api/v1/categories");
+    const res = await fetch("/api/v1/categories");
     if (res.ok) {
       categories.value = await res.json();
     }
@@ -51,7 +51,7 @@ const fetchCategories = async () => {
 const fetchProductDetails = async () => {
   isLoading.value = true;
   try {
-    const res = await fetch(`https://api.escuelajs.co/api/v1/products/${productId}`);
+    const res = await fetch(`/api/v1/products/${productId}`);
     if (!res.ok) throw new Error("Ürün bulunamadı!");
 
     const data = await res.json();
@@ -74,7 +74,7 @@ const handleCreateCategory = async () => {
   }
 
   try {
-    const response = await fetch("https://api.escuelajs.co/api/v1/categories", {
+    const response = await fetch("/api/v1/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newCategoryData),
@@ -108,8 +108,8 @@ const handleSubmit = async () => {
   message.value = isEditMode.value ? "Ürün güncelleniyor..." : "Ürün kaydediliyor...";
 
   const url = isEditMode.value
-    ? `https://api.escuelajs.co/api/v1/products/${productId}`
-    : "https://api.escuelajs.co/api/v1/products/";
+    ? `/api/v1/products/${productId}`
+    : "/api/v1/products/";
 
   const method = isEditMode.value ? "PUT" : "POST";
 

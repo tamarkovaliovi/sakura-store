@@ -21,7 +21,7 @@ const scrollToProducts = () => {
 const fetchProducts = async () => {
   try {
     const response = await fetch(
-      "https://api.escuelajs.co/api/v1/products?offset=0&limit=20"
+      "/api/v1/products?offset=0&limit=20"
     );
     const data = await response.json();
     products.value = data;

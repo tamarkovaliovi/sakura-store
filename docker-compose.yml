@@ -1,0 +1,6 @@
+services:
+  sakura-store:
+    build: .
+    ports:
+      - "8080:80"
+    restart: unless-stopped
