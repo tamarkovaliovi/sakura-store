@@ -249,25 +249,30 @@ defineEmits(["click", "logout"]);
 
   <button
     v-else-if="mode === 'checkout'"
-    class="w-full mt-6 bg-blue-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-800 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex justify-center items-center"
+    @click="$emit('click')"
+    type="button"
+    :disabled="disabled"
+    class="w-full mt-6 bg-blue-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-800 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
   >
-    <slot>Sepeti Onayla</slot>
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="h-5 w-5 ml-2"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M14 5l7 7m0 0l-7 7m7-7H3"
-      />
-    </svg>
+    <span v-if="disabled">Yükleniyor...</span>
+    <template v-else>
+      <slot>Sepeti Onayla</slot>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5 ml-2"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M14 5l7 7m0 0l-7 7m7-7H3"
+        />
+      </svg>
+    </template>
   </button>
-
   <button
     v-else-if="mode === 'clear-cart'"
     @click="$emit('click')"
