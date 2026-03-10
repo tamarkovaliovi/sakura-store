@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-// cart'ın bir ref olduğunu varsayıyoruz (hata bunu gösteriyor)
 import { cart } from "../stores/cart";
 import CustomButoon from "./CustomButton.vue";
 
@@ -11,6 +10,7 @@ const route = useRoute();
 const searchQuery = ref("");
 const isLoggedIn = ref(false);
 const userName = ref("");
+const isMobileMenuOpen = ref(false);
 
 onMounted(() => {
   const token = localStorage.getItem("user_token");
@@ -25,21 +25,15 @@ onMounted(() => {
   }
 });
 
-// KRİTİK DÜZELTME: cart.value.reduce kullanıldı
 const totalQuantity = computed(() => {
-  if (!cart.value) return 0;
-  return cart.value.reduce((acc, item) => {
-    return acc + (item.quantity || 1);
-  }, 0);
+  const items = cart.value || [];
+  return items.reduce((acc, item) => acc + (item.quantity || 1), 0);
 });
 
-// KRİTİK DÜZELTME: cart.value.reduce kullanıldı
 const cartTotal = computed(() => {
-  if (!cart.value) return "0.00";
-  return cart.value
-    .reduce((acc, item) => {
-      return acc + item.price * (item.quantity || 1);
-    }, 0)
+  const items = cart.value || [];
+  return items
+    .reduce((acc, item) => acc + item.price * (item.quantity || 1), 0)
     .toFixed(2);
 });
 
@@ -53,14 +47,10 @@ const handleSearch = () => {
     delete targetQuery.search;
   }
 
-  router
-    .push({
-      path: "/Allproducts",
-      query: targetQuery,
-    })
-    .catch((err) => {
-      if (err.name !== "NavigationDuplicated") console.error(err);
-    });
+  isMobileMenuOpen.value = false;
+  router.push({ path: "/Allproducts", query: targetQuery }).catch((err) => {
+    if (err.name !== "NavigationDuplicated") console.error(err);
+  });
 };
 
 watch(
@@ -71,60 +61,114 @@ watch(
 );
 
 watch(searchQuery, (newVal) => {
-  if (newVal === "") {
-    handleSearch();
-  }
+  if (newVal === "") handleSearch();
 });
 </script>
 
 <template>
-  <header class="bg-white shadow-md sticky top-0 z-50">
+  <header class="bg-white shadow-md sticky top-0 z-[100]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-20">
+      <div class="flex justify-between items-center h-20 gap-4">
         <div
           class="flex-shrink-0 flex items-center cursor-pointer"
           @click="$router.push('/')"
         >
-          <span class="text-2xl font-extrabold text-blue-900 tracking-tight">
-            Sakura<span class="text-orange-500">Store</span>
+          <span class="text-xl md:text-2xl font-extrabold text-blue-900 tracking-tight">
+            Sakura<span class="text-pink-500">Store</span>
           </span>
         </div>
 
-        <div class="hidden md:flex flex-1 mx-10">
+        <div class="hidden md:flex flex-1 mx-4 lg:mx-10">
           <div class="relative w-full max-w-xl mx-auto flex items-center">
             <input
               v-model="searchQuery"
               @keyup.enter="handleSearch"
               type="text"
-              class="w-full bg-gray-100 rounded-full py-2 pl-5 pr-12 border-none focus:ring-2 focus:ring-blue-900 focus:bg-white transition duration-300 placeholder-gray-400 text-sm"
-              placeholder="Ürün, kategori veya marka ara..."
+              class="w-full bg-gray-100 rounded-full py-2 pl-5 pr-12 border-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition duration-300 placeholder-gray-400 text-sm"
+              placeholder="Ürün ara..."
             />
-
             <button
-              type="button"
               @click.stop="handleSearch"
-              class="absolute right-0 top-0 h-full px-4 flex items-center justify-center focus:outline-none"
+              class="absolute right-0 top-0 h-full px-4 flex items-center"
             >
               <CustomButoon mode="search" />
             </button>
           </div>
+        </div>
 
-          <div class="hidden lg:flex items-center ml-4">
+        <div class="flex items-center space-x-3 md:space-x-6">
+          <nav class="hidden md:flex items-center space-x-1 lg:space-x-4">
             <RouterLink
               to="/Allproducts"
-              class="text-sm font-semibold text-gray-600 hover:text-blue-900 px-4 py-2 rounded-lg hover:bg-blue-50 transition"
+              class="text-sm font-bold text-gray-600 hover:text-pink-500 px-3 py-2 rounded-xl transition hover:bg-pink-50"
             >
               Tüm Ürünler
             </RouterLink>
 
             <RouterLink
               to="/kategoriler"
-              class="group flex items-center justify-center p-2 rounded-xl bg-gray-50 hover:bg-blue-50 border border-gray-100 hover:border-blue-200 transition-all duration-300 ml-2"
-              title="Kategorileri Yönet"
+              class="text-sm font-bold text-gray-600 hover:text-pink-500 px-3 py-2 rounded-xl transition hover:bg-pink-50"
+            >
+              Kategoriler
+            </RouterLink>
+          </nav>
+
+          <div class="flex items-center space-x-2 md:space-x-4">
+            <RouterLink
+              :to="isLoggedIn ? '/profile' : '/login'"
+              class="flex items-center group"
+            >
+              <div class="bg-gray-100 p-2 rounded-full group-hover:bg-pink-50 transition">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 text-gray-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+            </RouterLink>
+
+            <RouterLink to="/cart" class="relative group flex items-center">
+              <div class="bg-gray-100 p-2 rounded-full group-hover:bg-pink-50 transition">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 text-gray-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+                <span
+                  v-if="totalQuantity > 0"
+                  class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white"
+                >
+                  {{ totalQuantity }}
+                </span>
+              </div>
+            </RouterLink>
+
+            <button
+              @click="isMobileMenuOpen = !isMobileMenuOpen"
+              class="md:hidden p-2 text-gray-600 focus:outline-none"
             >
               <svg
+                v-if="!isMobileMenuOpen"
                 xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5 text-gray-500 group-hover:text-blue-900 transition-colors"
+                class="h-6 w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -133,83 +177,81 @@ watch(searchQuery, (newVal) => {
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  d="M4 6h16M4 12h16M4 18h16"
                 />
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-              <span
-                class="ml-2 text-sm font-bold text-gray-600 group-hover:text-blue-900 hidden xl:block"
-              >
-                Kategoriler
-              </span>
-            </RouterLink>
+            </button>
           </div>
-        </div>
-
-        <div class="flex items-center space-x-6">
-          <RouterLink
-            :to="isLoggedIn ? '/profile' : '/login'"
-            class="flex items-center text-gray-500 hover:text-blue-900 transition"
-          >
-            <div class="bg-gray-100 p-2 rounded-full group-hover:bg-blue-50 transition">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </div>
-            <div class="hidden xl:block ml-2 text-left">
-              <p class="text-xs text-gray-500">Hesabım</p>
-              <p class="text-sm font-bold text-gray-800">
-                {{ isLoggedIn ? userName : "Giriş Yap" }}
-              </p>
-            </div>
-          </RouterLink>
-
-          <RouterLink to="/cart" class="relative group flex items-center">
-            <div class="bg-gray-100 p-2 rounded-full group-hover:bg-blue-50 transition">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5 text-gray-600 group-hover:text-blue-900"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                />
-              </svg>
-              <span
-                v-if="totalQuantity > 0"
-                class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white"
-              >
-                {{ totalQuantity }}
-              </span>
-            </div>
-            <div class="hidden xl:block ml-2 text-left">
-              <p class="text-xs text-gray-500">Sepet</p>
-              <p class="text-sm font-bold text-gray-800">${{ cartTotal }}</p>
-            </div>
-          </RouterLink>
         </div>
       </div>
     </div>
+
+    <transition name="fade">
+      <div
+        v-if="isMobileMenuOpen"
+        class="md:hidden bg-white border-t border-gray-100 shadow-xl overflow-hidden"
+      >
+        <div class="p-4 space-y-4">
+          <div class="relative flex items-center">
+            <input
+              v-model="searchQuery"
+              @keyup.enter="handleSearch"
+              type="text"
+              class="w-full bg-gray-100 rounded-xl py-3 px-4 border-none text-sm"
+              placeholder="Ürün ara..."
+            />
+            <button
+              @click="handleSearch"
+              class="absolute right-3 text-pink-500 font-bold text-sm"
+            >
+              Ara
+            </button>
+          </div>
+          <nav class="grid grid-cols-1 gap-2">
+            <RouterLink
+              to="/Allproducts"
+              @click="isMobileMenuOpen = false"
+              class="p-4 bg-gray-50 rounded-2xl font-bold text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition"
+            >
+              🌸 Tüm Ürünler
+            </RouterLink>
+            <RouterLink
+              to="/kategoriler"
+              @click="isMobileMenuOpen = false"
+              class="p-4 bg-gray-50 rounded-2xl font-bold text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition"
+            >
+              📂 Kategorileri Yönet
+            </RouterLink>
+          </nav>
+        </div>
+      </div>
+    </transition>
   </header>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+</style>

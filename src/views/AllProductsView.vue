@@ -21,7 +21,6 @@ const minPrice = ref("");
 const maxPrice = ref("");
 const isDropdownOpen = ref(false);
 
-// Render/Production uyumluluğu için Base URL
 const API_BASE_URL = "https://api.escuelajs.co";
 
 const toggleDropdown = () => {
@@ -35,10 +34,11 @@ const selectCategory = (id) => {
 
 const fetchCategories = async () => {
   try {
-    // URL mutlak yol olarak güncellendi
     const response = await fetch(`${API_BASE_URL}/api/v1/categories`);
     const data = await response.json();
-    categories.value = data;
+    categories.value = data.filter(
+      (c) => c.name && !["string", "test", "new"].includes(c.name.toLowerCase())
+    );
   } catch (error) {
     console.error("Kategoriler yüklenirken hata oluştu:", error);
   }
@@ -49,7 +49,6 @@ const fetchProducts = async () => {
   const offset = (currentPage.value - 1) * limit;
   let url = "";
 
-  // Dinamik URL oluşturma mantığı Production Base URL ile birleştirildi
   if (selectedCategory.value !== null && !route.query.search) {
     url = `${API_BASE_URL}/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
   } else {
@@ -123,7 +122,6 @@ const goToAddProduct = () => {
 const deleteProduct = async (id) => {
   if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
   try {
-    // Silme işlemi için mutlak URL kullanıldı
     const response = await fetch(`${API_BASE_URL}/api/v1/products/${id}`, {
       method: "DELETE",
     });
@@ -138,8 +136,13 @@ const deleteProduct = async (id) => {
 
 const formatImage = (imgurl) => {
   if (!imgurl) return tukendiImage;
-  let cleaned = imgurl.replace(/["\[\]]/g, "");
-  if (!cleaned.startsWith("http")) return tukendiImage;
+  let cleaned = Array.isArray(imgurl) ? imgurl[0] : imgurl;
+  cleaned = String(cleaned)
+    .replace(/["\[\]]/g, "")
+    .trim();
+  if (cleaned.includes("placeimg.com") || !cleaned.startsWith("http")) {
+    return "https://placehold.co/600x600?text=Sakura+Store";
+  }
   return cleaned;
 };
 
@@ -153,34 +156,40 @@ onMounted(() => {
   <div class="page-wrapper">
     <Header />
 
-    <div class="page-header relative overflow-visible z-30">
-      <div class="header-bg-text">
+    <div class="page-header relative overflow-visible z-30 py-6 md:py-12">
+      <div class="header-bg-text hidden md:flex">
         <span class="bg-text-content"> Sakura </span>
       </div>
 
       <div class="header-content relative z-40 px-4 overflow-visible">
-        <h1 class="page-title text-3xl md:text-5xl font-extrabold mb-4">Tüm Ürünler</h1>
+        <h1 class="page-title text-2xl md:text-5xl font-extrabold mb-2 md:mb-4">
+          Tüm Ürünler
+        </h1>
 
-        <p v-if="route.query.search" class="page-subtitle mb-8 text-pink-600 font-bold">
+        <p
+          v-if="route.query.search"
+          class="page-subtitle mb-6 md:mb-8 text-pink-600 font-bold text-sm md:text-base"
+        >
           "{{ route.query.search }}" için sonuçlar listeleniyor...
         </p>
-        <p v-else class="page-subtitle mb-8">
+        <p v-else class="page-subtitle mb-6 md:mb-8 text-sm md:text-lg">
           En yeni koleksiyonumuzu keşfedin, tarzınızı yansıtan parçaları bulun.
         </p>
 
         <div
-          class="flex justify-center items-center gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-pink-100 max-w-6xl mx-auto flex-wrap relative z-50 overflow-visible"
+          class="flex flex-col md:flex-row justify-center items-stretch md:items-center gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-pink-100 max-w-6xl mx-auto relative z-50 overflow-visible"
         >
           <div class="relative group z-[100]">
             <button
               @click="toggleDropdown"
-              class="flex items-center gap-3 px-6 py-3 bg-white border-2 border-pink-100 text-pink-600 font-bold rounded-2xl shadow-sm hover:border-pink-300 transition-all active:scale-95"
+              class="w-full flex items-center justify-between md:justify-start gap-3 px-6 py-3 bg-white border-2 border-pink-100 text-pink-600 font-bold rounded-2xl shadow-sm hover:border-pink-300 transition-all active:scale-95"
             >
-              <span class="text-sm uppercase tracking-wider">
+              <span class="text-xs md:text-sm uppercase tracking-wider">
                 {{
                   selectedCategory === null
                     ? "Kategoriler"
-                    : categories.find((c) => c.id === selectedCategory)?.name
+                    : categories.find((c) => c.id === selectedCategory)?.name ||
+                      "Kategori"
                 }}
               </span>
               <svg
@@ -203,14 +212,14 @@ onMounted(() => {
             <transition name="fade">
               <div
                 v-if="isDropdownOpen"
-                class="absolute top-full left-0 mt-3 w-72 bg-white/95 backdrop-blur-md border border-pink-50 rounded-2xl shadow-2xl z-[1000] max-h-96 overflow-y-auto p-2 ring-1 ring-black/5"
+                class="absolute top-full left-0 mt-3 w-full md:w-72 bg-white border border-pink-50 rounded-2xl shadow-2xl z-[1000] max-h-60 md:max-h-96 overflow-y-auto p-2"
               >
                 <button
                   @click="selectCategory(null)"
                   :class="
                     selectedCategory === null
-                      ? 'bg-pink-500 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600'
+                      ? 'bg-pink-500 text-white'
+                      : 'text-gray-600 hover:bg-pink-50'
                   "
                   class="w-full text-left px-5 py-3 rounded-xl font-bold transition-all mb-1"
                 >
@@ -223,8 +232,8 @@ onMounted(() => {
                   @click="selectCategory(cat.id)"
                   :class="
                     selectedCategory === cat.id
-                      ? 'bg-pink-500 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600'
+                      ? 'bg-pink-500 text-white'
+                      : 'text-gray-600 hover:bg-pink-50'
                   "
                   class="w-full text-left px-5 py-3 rounded-xl font-bold transition-all mb-1 truncate"
                 >
@@ -234,30 +243,39 @@ onMounted(() => {
             </transition>
           </div>
 
-          <div class="flex items-center gap-3 border-r border-gray-100 pr-4 px-2">
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-tighter"
+          <div
+            class="flex items-center gap-2 md:gap-3 border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0 md:pr-4 md:px-2"
+          >
+            <span
+              class="hidden sm:inline text-xs font-bold text-gray-400 uppercase tracking-tighter"
               >Fiyat:</span
             >
             <input
               v-model.number="minPrice"
               type="number"
-              placeholder="Min $"
-              class="w-24 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none transition-all"
+              placeholder="Min"
+              class="flex-1 md:w-24 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none transition-all"
             />
             <span class="text-pink-300 font-bold">-</span>
             <input
               v-model.number="maxPrice"
               type="number"
-              placeholder="Max $"
-              class="w-24 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none transition-all"
+              placeholder="Max"
+              class="flex-1 md:w-24 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none transition-all"
             />
+          </div>
 
+          <div class="flex gap-2 justify-center">
             <CustomButton mode="apply" @click="fetchProducts"> Uygula </CustomButton>
             <CustomButton mode="clear" @click="clearFilters"> Temizle </CustomButton>
           </div>
 
-          <div class="pl-2">
-            <CustomButton mode="add-product-green" @click="goToAddProduct" />
+          <div class="md:pl-2">
+            <CustomButton
+              mode="add-product-green"
+              @click="goToAddProduct"
+              class="w-full"
+            />
           </div>
         </div>
       </div>
@@ -269,27 +287,31 @@ onMounted(() => {
         <p class="text-xl">Ürünler yükleniyor...</p>
       </div>
 
-      <div v-else-if="products.length > 0" class="product-grid">
+      <div
+        v-else-if="products.length > 0"
+        class="product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"
+      >
         <div
           v-for="product in products"
           :key="product.id"
           class="product-card group relative z-10"
         >
-          <div class="card-image-wrapper relative group">
+          <div class="card-image-wrapper relative group h-40 md:h-64">
             <img
-              v-if="product.images && product.images.length > 0"
-              :src="formatImage(product.images[0])"
+              :src="formatImage(product.images)"
               :alt="product.title"
-              class="card-image"
-              @error="$event.target.src = tukendiImage"
+              class="card-image w-full h-full object-cover"
+              @error="
+                (e) => (e.target.src = 'https://placehold.co/400x400?text=Resim+Yok')
+              "
             />
 
             <div
-              class="card-actions-overlay absolute top-3 right-3 flex flex-col gap-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              class="card-actions-overlay absolute top-2 right-2 flex flex-col gap-2 z-30 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300"
             >
               <router-link
                 :to="{ name: 'EditProduct', params: { id: product.id } }"
-                class="icon-btn edit-bg"
+                class="icon-btn edit-bg p-1.5 md:p-2"
                 title="Düzenle"
               >
                 <svg
@@ -298,7 +320,7 @@ onMounted(() => {
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="w-5 h-5"
+                  class="w-4 h-4 md:w-5 md:h-5"
                 >
                   <path
                     stroke-linecap="round"
@@ -310,7 +332,7 @@ onMounted(() => {
 
               <button
                 @click="deleteProduct(product.id)"
-                class="icon-btn delete-bg"
+                class="icon-btn delete-bg p-1.5 md:p-2"
                 title="Sil"
               >
                 <svg
@@ -319,7 +341,7 @@ onMounted(() => {
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="w-5 h-5"
+                  class="w-4 h-4 md:w-5 md:h-5"
                 >
                   <path
                     stroke-linecap="round"
@@ -331,23 +353,26 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="card-body">
-            <span class="category-tag">{{ product.category.name }}</span>
+          <div class="card-body p-3 md:p-6">
+            <span class="category-tag text-[10px] md:text-xs">{{
+              product.category?.name || "Kategori"
+            }}</span>
             <h3
-              class="product-title font-bold text-gray-900 mb-1 leading-tight line-clamp-2"
+              class="product-title font-bold text-gray-900 mb-1 leading-tight line-clamp-1 text-sm md:text-lg"
             >
               {{ product.title }}
             </h3>
             <div
-              class="card-footer mt-auto pt-4 flex justify-between items-center border-t border-gray-100"
+              class="card-footer mt-auto pt-3 md:pt-4 flex flex-col md:flex-row justify-between items-start md:items-center border-t border-gray-100 gap-2"
             >
-              <span class="product-price text-xl font-bold text-gray-900"
+              <span class="product-price text-base md:text-xl font-bold text-gray-900"
                 >${{ product.price }}</span
               >
               <CustomButton
                 mode="add-to-cart"
                 :product="product"
                 @click="addToCart(product)"
+                class="w-full md:w-auto scale-90 md:scale-100"
               />
             </div>
           </div>
@@ -356,22 +381,24 @@ onMounted(() => {
 
       <div
         v-else
-        class="text-center py-20 bg-white rounded-3xl shadow-sm border border-dashed border-gray-200"
+        class="text-center py-10 md:py-20 bg-white rounded-3xl shadow-sm border border-dashed border-gray-200 mx-4"
       >
-        <div class="text-5xl mb-4">🔍</div>
-        <h2 class="text-2xl font-bold text-gray-800">Aradığınız ürün bulunamadı</h2>
-        <p class="text-gray-500 mt-2">
+        <div class="text-3xl md:text-5xl mb-4">🔍</div>
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800 px-4">
+          Aradığınız ürün bulunamadı
+        </h2>
+        <p class="text-gray-500 mt-2 text-sm md:text-base px-4">
           Farklı bir anahtar kelime veya filtre denemeye ne dersiniz?
         </p>
-        <CustomButton mode="clear" class="mt-6" @click="clearFilters">
-          Tüm ürünlere geri dön
-        </CustomButton>
+        <CustomButton mode="clear" class="mt-6" @click="clearFilters"
+          >Tüm ürünlere geri dön</CustomButton
+        >
       </div>
     </main>
 
     <div
       v-if="products.length > 0"
-      class="flex justify-center items-center gap-6 mt-10 mb-20"
+      class="flex justify-center items-center gap-4 md:gap-6 mt-6 md:mt-10 mb-20"
     >
       <CustomButton
         mode="pagination"
@@ -379,9 +406,9 @@ onMounted(() => {
         :disabled="currentPage === 1"
         @click="changePage(-1)"
       />
-
-      <div class="current-page-badge">{{ currentPage }}</div>
-
+      <div class="current-page-badge w-8 h-8 md:w-10 md:h-10 text-sm md:text-base">
+        {{ currentPage }}
+      </div>
       <CustomButton
         mode="pagination"
         direction="right"
@@ -397,109 +424,67 @@ onMounted(() => {
 <style scoped>
 .page-wrapper {
   @apply min-h-screen flex flex-col font-sans bg-gray-50;
+  overflow-x: hidden;
 }
-
 .page-header {
-  @apply relative bg-white pt-12 pb-10 px-4 sm:px-6 lg:px-8 text-center shadow-sm;
+  @apply relative bg-white px-4 text-center shadow-sm;
   overflow: visible !important;
   z-index: 50;
 }
-
 .header-bg-text {
   @apply absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none select-none;
   overflow: hidden;
 }
-
 .bg-text-content {
-  @apply text-[10rem] font-bold text-blue-400 uppercase tracking-widest transform scale-110;
+  @apply text-[5rem] md:text-[10rem] font-bold text-blue-400 uppercase tracking-widest transform scale-110;
 }
-
 .page-title {
-  @apply text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4;
+  @apply font-extrabold text-gray-900 tracking-tight;
 }
-
 .page-subtitle {
-  @apply max-w-2xl mx-auto text-lg text-gray-500 font-light;
+  @apply max-w-2xl mx-auto text-gray-500 font-light;
 }
-
 .main-content {
-  @apply flex-grow container mx-auto px-4 py-8;
+  @apply flex-grow container mx-auto px-2 md:px-4;
   position: relative;
   z-index: 10;
 }
-
-.loading-state {
-  @apply text-center text-gray-500 py-20;
-}
-
-.spinner {
-  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4;
-}
-
 .product-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8;
+  /* Tailwind sınıfları template içinde tanımlandı */
 }
-
 .product-card {
   @apply bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-gray-100 flex flex-col h-full relative;
   z-index: 10;
 }
-
 .card-image-wrapper {
-  @apply relative h-64 overflow-hidden bg-gray-100 rounded-t-xl;
+  @apply relative overflow-hidden bg-gray-100 rounded-t-xl;
 }
-
 .card-image {
   @apply w-full h-full object-cover transform group-hover:scale-110 transition duration-500;
 }
-
 .card-actions-overlay {
-  @apply absolute top-3 right-3 flex flex-col gap-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300;
+  /* Tailwind sınıfları template içinde tanımlandı */
 }
-
 .icon-btn {
-  @apply p-2 rounded-xl shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center;
+  @apply rounded-xl shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center;
   background: rgba(255, 255, 255, 0.9);
 }
-
-.edit-bg {
-  @apply text-blue-600 hover:bg-blue-600 hover:text-white;
-}
-
-.delete-bg {
-  @apply text-red-500 hover:bg-red-500 hover:text-white;
-}
-
 .card-body {
-  @apply p-6 flex flex-col flex-grow;
+  /* Tailwind sınıfları template içinde tanımlandı */
 }
-
 .category-tag {
-  @apply text-xs font-bold text-blue-600 uppercase tracking-wider mb-2;
+  @apply font-bold text-blue-600 uppercase tracking-wider mb-1 block;
 }
-
 .product-title {
-  @apply text-lg font-bold text-gray-900 mb-1 leading-tight line-clamp-2;
+  @apply text-gray-900 leading-tight line-clamp-1;
 }
-
 .card-footer {
-  @apply mt-auto pt-4 flex justify-between items-center border-t border-gray-100;
+  /* Tailwind sınıfları template içinde tanımlandı */
 }
-
 .product-price {
-  @apply text-xl font-bold text-gray-900;
+  @apply font-bold text-gray-900;
 }
-
 .current-page-badge {
-  @apply w-10 h-10 flex items-center justify-center bg-pink-500 text-white rounded-full font-bold shadow-md;
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
+  @apply flex items-center justify-center bg-pink-500 text-white rounded-full font-bold shadow-md;
 }
 </style>
