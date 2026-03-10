@@ -3,9 +3,17 @@
 
   <div class="min-h-screen bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 class="text-3xl font-extrabold text-blue-900 mb-8 flex items-center">
-        <span class="mr-3 text-pink-500"></span> SakuraStore - Kategori Yönetimi
-      </h1>
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-extrabold text-blue-900 flex items-center">
+          <span class="mr-3 text-pink-500">🌸</span> SakuraStore - Kategori Yönetimi
+        </h1>
+        <button
+          @click="openAddModal"
+          class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition"
+        >
+          + Yeni Kategori Ekle
+        </button>
+      </div>
 
       <hr class="border-gray-100 mb-10" />
 
@@ -48,6 +56,7 @@
       </div>
     </div>
   </div>
+
   <div
     v-if="showModal"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
@@ -100,14 +109,6 @@
     </div>
   </div>
 
-  <div class="mb-10">
-    <button
-      @click="openAddModal"
-      class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition"
-    >
-      + Yeni Kategori Ekle
-    </button>
-  </div>
   <AppFooter />
 </template>
 
@@ -120,23 +121,24 @@ import AppFooter from "../components/AppFooter.vue";
 
 const categories = ref([]);
 const isEditing = ref(false);
-
 const showModal = ref(false);
-const apiUrl = "/api/v1/categories";
 
-const openAddModal = () => {
-  resetForm();
-  showModal.value = true;
-};
+const apiUrl = "https://api.escuelajs.co/api/v1/categories";
 
 const categoryForm = ref({
   id: null,
   name: "",
   image: "",
 });
+
+const openAddModal = () => {
+  resetForm();
+  showModal.value = true;
+};
+
 const formatCategoryImage = (url) => {
   if (!url) return "https://placehold.co/600x400?text=Resim+Yok";
-  let cleaned = url.replace(/[\[\]"]/g, "");
+  let cleaned = String(url).replace(/[\[\]"]/g, "");
   return cleaned;
 };
 
@@ -144,7 +146,11 @@ const fetchCategories = async () => {
   try {
     const response = await axios.get(apiUrl);
     categories.value = response.data.filter(
-      (c) => c.name && c.name !== "string" && c.name !== "New Category"
+      (c) =>
+        c.name &&
+        c.name.toLowerCase() !== "string" &&
+        c.name.toLowerCase() !== "new category" &&
+        c.image
     );
   } catch (error) {
     console.error("Kategoriler yüklenirken hata:", error);
@@ -159,10 +165,11 @@ const createCategory = async () => {
       name: categoryForm.value.name,
       image: categoryForm.value.image,
     });
-    fetchCategories();
+    await fetchCategories();
     resetForm();
   } catch (error) {
     console.error("Ekleme hatası:", error);
+    alert("Kategori eklenemedi.");
   }
 };
 
@@ -175,6 +182,7 @@ const prepareEdit = (category) => {
   };
   showModal.value = true;
 };
+
 const resetForm = () => {
   categoryForm.value = { id: null, name: "", image: "" };
   isEditing.value = false;
@@ -187,10 +195,11 @@ const updateCategory = async () => {
       name: categoryForm.value.name,
       image: categoryForm.value.image,
     });
-    fetchCategories();
+    await fetchCategories();
     resetForm();
   } catch (error) {
     console.error("Güncelleme hatası:", error);
+    alert("Güncelleme başarısız oldu.");
   }
 };
 
@@ -198,12 +207,13 @@ const deleteCategory = async (id) => {
   if (confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) {
     try {
       await axios.delete(`${apiUrl}/${id}`);
-      fetchCategories();
+      await fetchCategories();
     } catch (error) {
-      alert("Bu kategori silinemez (Bağlı ürünler olabilir).");
+      alert("Bu kategori silinemez (Bağlı ürünler olabilir veya yetkiniz yok).");
     }
   }
 };
+
 onMounted(() => {
   fetchCategories();
 });
