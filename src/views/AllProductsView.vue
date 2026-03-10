@@ -21,7 +21,6 @@ const minPrice = ref("");
 const maxPrice = ref("");
 const isDropdownOpen = ref(false);
 
-// Render/Production uyumluluğu için Base URL
 const API_BASE_URL = "https://api.escuelajs.co";
 
 const toggleDropdown = () => {
@@ -35,10 +34,12 @@ const selectCategory = (id) => {
 
 const fetchCategories = async () => {
   try {
-    // URL mutlak yol olarak güncellendi
     const response = await fetch(`${API_BASE_URL}/api/v1/categories`);
     const data = await response.json();
-    categories.value = data;
+    // Çöp kategorileri filtrele
+    categories.value = data.filter(
+      (c) => c.name && !["string", "test", "new"].includes(c.name.toLowerCase())
+    );
   } catch (error) {
     console.error("Kategoriler yüklenirken hata oluştu:", error);
   }
@@ -49,7 +50,6 @@ const fetchProducts = async () => {
   const offset = (currentPage.value - 1) * limit;
   let url = "";
 
-  // Dinamik URL oluşturma mantığı Production Base URL ile birleştirildi
   if (selectedCategory.value !== null && !route.query.search) {
     url = `${API_BASE_URL}/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
   } else {
@@ -123,7 +123,6 @@ const goToAddProduct = () => {
 const deleteProduct = async (id) => {
   if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
   try {
-    // Silme işlemi için mutlak URL kullanıldı
     const response = await fetch(`${API_BASE_URL}/api/v1/products/${id}`, {
       method: "DELETE",
     });
@@ -136,10 +135,25 @@ const deleteProduct = async (id) => {
   }
 };
 
+/**
+ * BOZUK GÖRSEL TEMİZLEME MOTORU
+ */
 const formatImage = (imgurl) => {
   if (!imgurl) return tukendiImage;
-  let cleaned = imgurl.replace(/["\[\]]/g, "");
-  if (!cleaned.startsWith("http")) return tukendiImage;
+
+  // Dizi içindeyse ilkini al
+  let cleaned = Array.isArray(imgurl) ? imgurl[0] : imgurl;
+
+  // Gereksiz karakterleri temizle
+  cleaned = String(cleaned)
+    .replace(/["\[\]]/g, "")
+    .trim();
+
+  // placeimg.com hatasını engelle veya geçersiz linkleri yakala
+  if (cleaned.includes("placeimg.com") || !cleaned.startsWith("http")) {
+    return "https://placehold.co/600x600?text=Sakura+Store";
+  }
+
   return cleaned;
 };
 
@@ -180,7 +194,8 @@ onMounted(() => {
                 {{
                   selectedCategory === null
                     ? "Kategoriler"
-                    : categories.find((c) => c.id === selectedCategory)?.name
+                    : categories.find((c) => c.id === selectedCategory)?.name ||
+                      "Kategori"
                 }}
               </span>
               <svg
@@ -203,14 +218,14 @@ onMounted(() => {
             <transition name="fade">
               <div
                 v-if="isDropdownOpen"
-                class="absolute top-full left-0 mt-3 w-72 bg-white/95 backdrop-blur-md border border-pink-50 rounded-2xl shadow-2xl z-[1000] max-h-96 overflow-y-auto p-2 ring-1 ring-black/5"
+                class="absolute top-full left-0 mt-3 w-72 bg-white border border-pink-50 rounded-2xl shadow-2xl z-[1000] max-h-96 overflow-y-auto p-2"
               >
                 <button
                   @click="selectCategory(null)"
                   :class="
                     selectedCategory === null
-                      ? 'bg-pink-500 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600'
+                      ? 'bg-pink-500 text-white'
+                      : 'text-gray-600 hover:bg-pink-50'
                   "
                   class="w-full text-left px-5 py-3 rounded-xl font-bold transition-all mb-1"
                 >
@@ -223,8 +238,8 @@ onMounted(() => {
                   @click="selectCategory(cat.id)"
                   :class="
                     selectedCategory === cat.id
-                      ? 'bg-pink-500 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600'
+                      ? 'bg-pink-500 text-white'
+                      : 'text-gray-600 hover:bg-pink-50'
                   "
                   class="w-full text-left px-5 py-3 rounded-xl font-bold transition-all mb-1 truncate"
                 >
@@ -277,11 +292,12 @@ onMounted(() => {
         >
           <div class="card-image-wrapper relative group">
             <img
-              v-if="product.images && product.images.length > 0"
-              :src="formatImage(product.images[0])"
+              :src="formatImage(product.images)"
               :alt="product.title"
               class="card-image"
-              @error="$event.target.src = tukendiImage"
+              @error="
+                (e) => (e.target.src = 'https://placehold.co/400x400?text=Resim+Yok')
+              "
             />
 
             <div
@@ -332,7 +348,7 @@ onMounted(() => {
           </div>
 
           <div class="card-body">
-            <span class="category-tag">{{ product.category.name }}</span>
+            <span class="category-tag">{{ product.category?.name || "Kategori" }}</span>
             <h3
               class="product-title font-bold text-gray-900 mb-1 leading-tight line-clamp-2"
             >
@@ -363,9 +379,9 @@ onMounted(() => {
         <p class="text-gray-500 mt-2">
           Farklı bir anahtar kelime veya filtre denemeye ne dersiniz?
         </p>
-        <CustomButton mode="clear" class="mt-6" @click="clearFilters">
-          Tüm ürünlere geri dön
-        </CustomButton>
+        <CustomButton mode="clear" class="mt-6" @click="clearFilters"
+          >Tüm ürünlere geri dön</CustomButton
+        >
       </div>
     </main>
 
@@ -379,9 +395,7 @@ onMounted(() => {
         :disabled="currentPage === 1"
         @click="changePage(-1)"
       />
-
       <div class="current-page-badge">{{ currentPage }}</div>
-
       <CustomButton
         mode="pagination"
         direction="right"
@@ -395,101 +409,80 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Mevcut stillerini korudum, herhangi bir değişiklik yapmana gerek yok */
 .page-wrapper {
   @apply min-h-screen flex flex-col font-sans bg-gray-50;
 }
-
 .page-header {
   @apply relative bg-white pt-12 pb-10 px-4 sm:px-6 lg:px-8 text-center shadow-sm;
   overflow: visible !important;
   z-index: 50;
 }
-
 .header-bg-text {
   @apply absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none select-none;
   overflow: hidden;
 }
-
 .bg-text-content {
   @apply text-[10rem] font-bold text-blue-400 uppercase tracking-widest transform scale-110;
 }
-
 .page-title {
   @apply text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4;
 }
-
 .page-subtitle {
   @apply max-w-2xl mx-auto text-lg text-gray-500 font-light;
 }
-
 .main-content {
   @apply flex-grow container mx-auto px-4 py-8;
   position: relative;
   z-index: 10;
 }
-
 .loading-state {
   @apply text-center text-gray-500 py-20;
 }
-
 .spinner {
   @apply animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4;
 }
-
 .product-grid {
   @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8;
 }
-
 .product-card {
   @apply bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-gray-100 flex flex-col h-full relative;
   z-index: 10;
 }
-
 .card-image-wrapper {
   @apply relative h-64 overflow-hidden bg-gray-100 rounded-t-xl;
 }
-
 .card-image {
   @apply w-full h-full object-cover transform group-hover:scale-110 transition duration-500;
 }
-
 .card-actions-overlay {
   @apply absolute top-3 right-3 flex flex-col gap-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300;
 }
-
 .icon-btn {
   @apply p-2 rounded-xl shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center;
   background: rgba(255, 255, 255, 0.9);
 }
-
 .edit-bg {
   @apply text-blue-600 hover:bg-blue-600 hover:text-white;
 }
-
 .delete-bg {
   @apply text-red-500 hover:bg-red-500 hover:text-white;
 }
-
 .card-body {
   @apply p-6 flex flex-col flex-grow;
 }
-
 .category-tag {
   @apply text-xs font-bold text-blue-600 uppercase tracking-wider mb-2;
 }
-
 .product-title {
   @apply text-lg font-bold text-gray-900 mb-1 leading-tight line-clamp-2;
 }
-
 .card-footer {
   @apply mt-auto pt-4 flex justify-between items-center border-t border-gray-100;
 }
-
 .product-price {
   @apply text-xl font-bold text-gray-900;
 }
-
 .current-page-badge {
   @apply w-10 h-10 flex items-center justify-center bg-pink-500 text-white rounded-full font-bold shadow-md;
 }
