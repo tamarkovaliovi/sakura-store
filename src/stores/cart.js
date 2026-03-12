@@ -1,53 +1,54 @@
-// src/stores/cart.js
+import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 
-// 1. Güvenli yükleme: LocalStorage verisini hata kontrolüyle çekiyoruz
-const getSavedCart = () => {
-  try {
-    const data = localStorage.getItem('my_cart');
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    console.error("Sepet verisi okunamadı, sıfırlanıyor.");
-    return [];
-  }
-};
-
-// 2. 'ref' kullanımı dizilerde daha stabil bir reaktiflik sağlar
-export const cart = ref(getSavedCart());
-
-// 3. Sepete Ekleme
-export const addToCart = (product) => {
-  const existingItem = cart.value.find(item => item.id === product.id);
+export const useCartStore = defineStore('cart', () => {
   
-  if (existingItem) {
-    existingItem.quantity++;
-  } else {
-    // API'den gelen veriye göre 'images' veya 'title' kontrolü eklenebilir
-    cart.value.push({ ...product, quantity: 1 });
-  }
-};
+  const cart = ref(JSON.parse(localStorage.getItem('my_cart')) || []);
+  const favorites = ref(JSON.parse(localStorage.getItem('my_favorites')) || []);
 
-// 4. Adet Azaltma (Kullanıcı sepet sayfasında '-' tuşuna basarsa)
-export const decreaseQuantity = (productId) => {
-  const item = cart.value.find(item => item.id === productId);
-  if (item && item.quantity > 1) {
-    item.quantity--;
-  } else {
-    removeFromCart(productId); // Adet 1'den küçükse sepetten sil
-  }
-};
 
-// 5. Sepetten Tamamen Silme
-export const removeFromCart = (productId) => {
-  cart.value = cart.value.filter(item => item.id !== productId);
-};
+  const addToCart = (product) => {
+    const existingItem = cart.value.find(item => item.id === product.id);
+    if (existingItem) {
+      existingItem.quantity++;
+    } else {
+      cart.value.push({ ...product, quantity: 1 });
+    }
+  };
 
-// 6. Sepeti Temizle
-export const clearCart = () => {
-  cart.value = [];
-};
+  const removeFromCart = (productId) => {
+    cart.value = cart.value.filter(item => item.id !== productId);
+  };
 
-// 7. LocalStorage Kaydı
-watch(cart, (newCart) => {
-  localStorage.setItem('my_cart', JSON.stringify(newCart));
-}, { deep: true });
+  
+  const toggleFavorite = (product) => {
+    const index = favorites.value.findIndex(p => p.id === product.id);
+    if (index > -1) {
+      favorites.value.splice(index, 1); 
+    } else {
+      favorites.value.push(product); 
+    }
+  };
+
+  const isFavorite = (productId) => {
+    return favorites.value.some(p => p.id === productId);
+  };
+
+  
+  watch(cart, (newCart) => {
+    localStorage.setItem('my_cart', JSON.stringify(newCart));
+  }, { deep: true });
+
+  watch(favorites, (newFavs) => {
+    localStorage.setItem('my_favorites', JSON.stringify(newFavs));
+  }, { deep: true });
+
+  return { 
+    cart, 
+    favorites, 
+    addToCart, 
+    removeFromCart, 
+    toggleFavorite, 
+    isFavorite 
+  };
+});

@@ -1,11 +1,15 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { addToCart } from "../stores/cart";
+
+import { useCartStore } from "@/stores/cart";
+
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 import tukendiImage from "@/components/pictures/tukendi.jpg";
+
+const store = useCartStore();
 
 const route = useRoute();
 const product = ref(null);
@@ -14,21 +18,15 @@ const loading = ref(true);
 
 const API_BASE_URL = "https://api.escuelajs.co";
 
-/**
- * BOZUK GÖRSEL TEMİZLEME MOTORU
- */
 const formatImage = (imgData) => {
   if (!imgData) return "https://placehold.co/600x600?text=Resim+Yok";
 
-  // Veri dizi ise ilk elemanı al, değilse kendisini kullan
   let url = Array.isArray(imgData) ? imgData[0] : imgData;
 
-  // String temizliği (tırnak ve köşeli parantezler)
   let cleaned = String(url)
     .replace(/[\[\]"]/g, "")
     .trim();
 
-  // placeimg.com hatasını engelle veya geçersiz linkleri yakala
   if (cleaned.includes("placeimg.com") || !cleaned.startsWith("http")) {
     return "https://placehold.co/600x600?text=Sakura+Store";
   }
@@ -127,7 +125,7 @@ watch(
             <CustomButton
               mode="add-to-cart"
               :product="product"
-              @click="addToCart(product)"
+              @click="store.addToCart(product)"
               class="w-full md:w-max px-12"
             />
           </div>

@@ -8,6 +8,7 @@ import CartView from '../views/CartView.vue';
 import ProductDetailsView from '../views/ProductDetailsView.vue';
 import EditProductView from '../views/EditProductView.vue';
 import CategoriesView from '../components/Categories.vue';
+import FavoritesView from '../views/FavoritesView.vue';
 
 const routes = [
   {
@@ -39,6 +40,11 @@ const routes = [
     path: '/cart',
     name: 'cart',
     component: CartView
+  },
+  {
+    path: '/favorites', 
+    name: 'favorites',
+    component: FavoritesView
   },
   {
     path: '/products/:id',

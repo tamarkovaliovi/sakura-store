@@ -1,25 +1,75 @@
 <script setup>
-import { ref, computed } from "vue";
-// cart verisinin bir ref([]) olduğunu varsayıyoruz
-import { cart, removeFromCart, clearCart } from "@/stores/cart";
+import { ref, computed, nextTick, watch } from "vue";
+import { useCartStore } from "@/stores/cart";
 
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 
+// HARİTA İÇİN IMPORTLAR
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// 2. Store'u başlatıyoruz
+const store = useCartStore();
+
 // Lokasyon State'leri
 const locations = ref([]);
 const searchQuery = ref("");
 const isLocationModalOpen = ref(false);
-const viewMode = ref("list");
+const viewMode = ref("list"); // list, grid veya map
 const selectedLocation = ref(null);
 const isLoading = ref(false);
 
-// HESAPLAMA: Script içinde .value kullanılması ZORUNLUDUR
+// Harita referansı
+const map = ref(null);
+const markers = [];
+
+// HESAPLAMA: store.cart kullanarak güncellendi
 const subtotal = computed(() => {
-  // cart.value'nun dizi olduğundan emin oluyoruz
-  if (!cart.value || !Array.isArray(cart.value)) return 0;
-  return cart.value.reduce((total, item) => total + item.price * item.quantity, 0);
+  if (!store.cart || !Array.isArray(store.cart)) return 0;
+  return store.cart.reduce((total, item) => total + item.price * item.quantity, 0);
+});
+
+// Haritayı başlatan fonksiyon
+const initMap = async () => {
+  await nextTick();
+
+  if (!map.value) {
+    map.value = L.map("map-container").setView([39.0, 35.0], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap",
+    }).addTo(map.value);
+  }
+
+  markers.forEach((m) => map.value.removeLayer(m));
+
+  filteredLocations.value.forEach((loc) => {
+    const lat = loc.latitude || 41 + Math.random() * 0.5;
+    const lng = loc.longitude || 28.9 + Math.random() * 0.5;
+
+    const marker = L.marker([lat, lng])
+      .addTo(map.value)
+      .bindPopup(`<b>${loc.name}</b><br>${loc.description}`);
+
+    marker.on("click", () => {
+      selectedLocation.value = loc;
+    });
+
+    markers.push(marker);
+  });
+
+  if (markers.length > 0) {
+    const group = new L.featureGroup(markers);
+    map.value.fitBounds(group.getBounds().pad(0.1));
+  }
+};
+
+watch(viewMode, (newMode) => {
+  if (newMode === "map") {
+    initMap();
+  }
 });
 
 const fetchLocations = async () => {
@@ -55,7 +105,7 @@ const filteredLocations = computed(() => {
 const handleCompleteOrder = () => {
   if (!selectedLocation.value) return;
   alert(`Siparişiniz alındı! Teslimat: ${selectedLocation.value.name}`);
-  clearCart();
+  store.clearCart(); // store üzerinden çağrıldı
   isLocationModalOpen.value = false;
 };
 </script>
@@ -67,7 +117,7 @@ const handleCompleteOrder = () => {
     <main class="main-content">
       <h1 class="page-title">Alışveriş Sepetim</h1>
 
-      <div v-if="!cart || cart.length === 0" class="empty-cart-container">
+      <div v-if="!store.cart || store.cart.length === 0" class="empty-cart-container">
         <div class="empty-icon-wrapper">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -95,7 +145,7 @@ const handleCompleteOrder = () => {
 
       <div v-else class="cart-layout">
         <div class="cart-items-section">
-          <div v-for="item in cart" :key="item.id" class="cart-item-card">
+          <div v-for="item in store.cart" :key="item.id" class="cart-item-card">
             <img
               :src="
                 item.images && item.images[0]
@@ -118,7 +168,9 @@ const handleCompleteOrder = () => {
                   <CustomButton
                     mode="decrease-quantity"
                     :item="item"
-                    @click="item.quantity > 1 ? item.quantity-- : removeFromCart(item.id)"
+                    @click="
+                      item.quantity > 1 ? item.quantity-- : store.removeFromCart(item.id)
+                    "
                   />
                   <span class="quantity-text">{{ item.quantity }}</span>
                   <CustomButton
@@ -130,12 +182,11 @@ const handleCompleteOrder = () => {
                 <CustomButton
                   mode="remove-itemfrom-cart"
                   :item="item"
-                  @click="removeFromCart(item.id)"
+                  @click="store.removeFromCart(item.id)"
                 />
               </div>
             </div>
           </div>
-
           <div v-if="isLocationModalOpen" class="location-selection-box animate-in">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-bold text-gray-900">Teslimat Noktası Seçin</h2>
@@ -163,9 +214,19 @@ const handleCompleteOrder = () => {
                 >
                   Kartlar
                 </button>
+                <button @click="viewMode = 'map'" :class="{ active: viewMode === 'map' }">
+                  Harita
+                </button>
               </div>
             </div>
-            <div :class="['locations-wrapper', viewMode]">
+
+            <div
+              v-show="viewMode === 'map'"
+              id="map-container"
+              class="map-container-style"
+            ></div>
+
+            <div v-if="viewMode !== 'map'" :class="['locations-wrapper', viewMode]">
               <div
                 v-for="loc in filteredLocations"
                 :key="loc.id"
@@ -182,6 +243,7 @@ const handleCompleteOrder = () => {
                 <div v-if="selectedLocation?.id === loc.id" class="check-mark">✓</div>
               </div>
             </div>
+
             <div v-if="selectedLocation" class="selection-footer">
               <p>
                 Seçilen Mağaza: <strong>{{ selectedLocation.name }}</strong>
@@ -213,7 +275,7 @@ const handleCompleteOrder = () => {
                 @click="fetchLocations"
                 :disabled="isLoading"
               />
-              <CustomButton mode="clear-cart" @click="clearCart()" />
+              <CustomButton mode="clear-cart" @click="store.clearCart()" />
             </div>
           </div>
         </div>
@@ -224,7 +286,6 @@ const handleCompleteOrder = () => {
 </template>
 
 <style scoped>
-/* Mevcut Tailwind stillerin aynen korunmuştur */
 .page-wrapper {
   @apply min-h-screen bg-gray-50 flex flex-col;
 }
@@ -311,6 +372,12 @@ const handleCompleteOrder = () => {
 .check-mark {
   @apply text-blue-600 font-bold bg-blue-100 w-6 h-6 flex items-center justify-center rounded-full;
 }
+
+.map-container-style {
+  @apply w-full h-[400px] rounded-xl border-2 border-gray-100 mb-4;
+  z-index: 10;
+}
+
 .selection-footer {
   @apply mt-8 pt-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4;
 }

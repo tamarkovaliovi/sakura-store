@@ -1,12 +1,15 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { addToCart } from "@/stores/cart";
+
+import { useCartStore } from "@/stores/cart";
 
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 import tukendiImage from "@/components/pictures/tukendi.jpg";
+
+const store = useCartStore();
 
 const products = ref([]);
 const categories = ref([]);
@@ -177,19 +180,18 @@ onMounted(() => {
         </p>
 
         <div
-          class="flex flex-col md:flex-row justify-center items-stretch md:items-center gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-pink-100 max-w-6xl mx-auto relative z-50 overflow-visible"
+          class="flex flex-col md:flex-row justify-center items-stretch md:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-[2rem] shadow-xl border border-pink-100 max-w-6xl mx-auto relative z-50 overflow-visible"
         >
-          <div class="relative group z-[100]">
+          <div class="relative group z-[100] flex-1 md:flex-none">
             <button
               @click="toggleDropdown"
-              class="w-full flex items-center justify-between md:justify-start gap-3 px-6 py-3 bg-white border-2 border-pink-100 text-pink-600 font-bold rounded-2xl shadow-sm hover:border-pink-300 transition-all active:scale-95"
+              class="w-full md:w-64 flex items-center justify-between gap-3 px-6 py-3.5 bg-white border-2 border-pink-100 text-pink-600 font-bold rounded-2xl shadow-sm hover:border-pink-300 transition-all active:scale-95"
             >
-              <span class="text-xs md:text-sm uppercase tracking-wider">
+              <span class="text-xs md:text-sm uppercase tracking-wider truncate">
                 {{
                   selectedCategory === null
-                    ? "Kategoriler"
-                    : categories.find((c) => c.id === selectedCategory)?.name ||
-                      "Kategori"
+                    ? "Tüm Kategoriler"
+                    : categories.find((c) => c.id === selectedCategory)?.name
                 }}
               </span>
               <svg
@@ -208,11 +210,10 @@ onMounted(() => {
                 />
               </svg>
             </button>
-
             <transition name="fade">
               <div
                 v-if="isDropdownOpen"
-                class="absolute top-full left-0 mt-3 w-full md:w-72 bg-white border border-pink-50 rounded-2xl shadow-2xl z-[1000] max-h-60 md:max-h-96 overflow-y-auto p-2"
+                class="absolute top-full left-0 mt-3 w-full md:w-72 bg-white border border-pink-50 rounded-2xl shadow-2xl z-[1000] max-h-60 overflow-y-auto p-2"
               >
                 <button
                   @click="selectCategory(null)"
@@ -225,7 +226,6 @@ onMounted(() => {
                 >
                   Tüm Ürünler
                 </button>
-
                 <button
                   v-for="cat in categories"
                   :key="cat.id"
@@ -244,37 +244,41 @@ onMounted(() => {
           </div>
 
           <div
-            class="flex items-center gap-2 md:gap-3 border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0 md:pr-4 md:px-2"
+            class="flex items-center gap-2 md:gap-3 bg-gray-50/50 p-2 md:p-0 rounded-2xl md:bg-transparent md:border-r border-gray-100 md:pr-4 md:px-2 flex-1"
           >
-            <span
-              class="hidden sm:inline text-xs font-bold text-gray-400 uppercase tracking-tighter"
-              >Fiyat:</span
-            >
             <input
               v-model.number="minPrice"
               type="number"
               placeholder="Min"
-              class="flex-1 md:w-24 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none transition-all"
+              class="w-full pl-6 pr-3 py-3 bg-white border border-pink-50 rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none shadow-sm"
             />
-            <span class="text-pink-300 font-bold">-</span>
+            <span class="text-pink-300 font-bold">/</span>
             <input
               v-model.number="maxPrice"
               type="number"
               placeholder="Max"
-              class="flex-1 md:w-24 px-3 py-2 bg-gray-50 border border-transparent rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none transition-all"
+              class="w-full pl-6 pr-3 py-3 bg-white border border-pink-50 rounded-xl text-sm focus:ring-2 focus:ring-pink-300 outline-none shadow-sm"
             />
           </div>
 
-          <div class="flex gap-2 justify-center">
-            <CustomButton mode="apply" @click="fetchProducts"> Uygula </CustomButton>
-            <CustomButton mode="clear" @click="clearFilters"> Temizle </CustomButton>
+          <div class="flex gap-2 justify-between md:justify-center">
+            <CustomButton
+              mode="apply"
+              @click="fetchProducts"
+              class="flex-1 md:flex-none shadow-md"
+            />
+            <CustomButton
+              mode="clear"
+              @click="clearFilters"
+              class="flex-1 md:flex-none shadow-md"
+            />
           </div>
 
           <div class="md:pl-2">
             <CustomButton
               mode="add-product-green"
               @click="goToAddProduct"
-              class="w-full"
+              class="w-full shadow-lg"
             />
           </div>
         </div>
@@ -296,14 +300,35 @@ onMounted(() => {
           :key="product.id"
           class="product-card group relative z-10"
         >
-          <div class="card-image-wrapper relative group h-40 md:h-64">
+          <button
+            @click="store.toggleFavorite(product)"
+            class="absolute top-3 left-3 z-30 p-2 bg-white/90 rounded-full shadow-sm hover:scale-110 transition-all duration-300 border border-gray-100"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              :class="
+                store.isFavorite(product.id)
+                  ? 'fill-red-500 text-red-500'
+                  : 'text-gray-400'
+              "
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+              />
+            </svg>
+          </button>
+
+          <div class="card-image-wrapper relative h-40 md:h-64">
             <img
               :src="formatImage(product.images)"
               :alt="product.title"
               class="card-image w-full h-full object-cover"
-              @error="
-                (e) => (e.target.src = 'https://placehold.co/400x400?text=Resim+Yok')
-              "
             />
 
             <div
@@ -329,7 +354,6 @@ onMounted(() => {
                   />
                 </svg>
               </router-link>
-
               <button
                 @click="deleteProduct(product.id)"
                 class="icon-btn delete-bg p-1.5 md:p-2"
@@ -353,7 +377,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="card-body p-3 md:p-6">
+          <div class="card-body p-3 md:p-6 text-center">
             <span class="category-tag text-[10px] md:text-xs">{{
               product.category?.name || "Kategori"
             }}</span>
@@ -363,7 +387,7 @@ onMounted(() => {
               {{ product.title }}
             </h3>
             <div
-              class="card-footer mt-auto pt-3 md:pt-4 flex flex-col md:flex-row justify-between items-start md:items-center border-t border-gray-100 gap-2"
+              class="card-footer mt-auto pt-3 md:pt-4 flex flex-col md:flex-row justify-between items-center border-t border-gray-100 gap-2"
             >
               <span class="product-price text-base md:text-xl font-bold text-gray-900"
                 >${{ product.price }}</span
@@ -371,7 +395,7 @@ onMounted(() => {
               <CustomButton
                 mode="add-to-cart"
                 :product="product"
-                @click="addToCart(product)"
+                @click="store.addToCart(product)"
                 class="w-full md:w-auto scale-90 md:scale-100"
               />
             </div>
@@ -387,41 +411,39 @@ onMounted(() => {
         <h2 class="text-xl md:text-2xl font-bold text-gray-800 px-4">
           Aradığınız ürün bulunamadı
         </h2>
-        <p class="text-gray-500 mt-2 text-sm md:text-base px-4">
-          Farklı bir anahtar kelime veya filtre denemeye ne dersiniz?
-        </p>
         <CustomButton mode="clear" class="mt-6" @click="clearFilters"
           >Tüm ürünlere geri dön</CustomButton
         >
       </div>
-    </main>
 
-    <div
-      v-if="products.length > 0"
-      class="flex justify-center items-center gap-4 md:gap-6 mt-6 md:mt-10 mb-20"
-    >
-      <CustomButton
-        mode="pagination"
-        direction="left"
-        :disabled="currentPage === 1"
-        @click="changePage(-1)"
-      />
-      <div class="current-page-badge w-8 h-8 md:w-10 md:h-10 text-sm md:text-base">
-        {{ currentPage }}
+      <div
+        v-if="products.length > 0"
+        class="flex justify-center items-center gap-4 md:gap-6 mt-6 md:mt-10 mb-20"
+      >
+        <CustomButton
+          mode="pagination"
+          direction="left"
+          :disabled="currentPage === 1"
+          @click="changePage(-1)"
+        />
+        <div class="current-page-badge w-8 h-8 md:w-10 md:h-10 text-sm md:text-base">
+          {{ currentPage }}
+        </div>
+        <CustomButton
+          mode="pagination"
+          direction="right"
+          :disabled="products.length < limit"
+          @click="changePage(1)"
+        />
       </div>
-      <CustomButton
-        mode="pagination"
-        direction="right"
-        :disabled="products.length < limit"
-        @click="changePage(1)"
-      />
-    </div>
+    </main>
 
     <AppFooter />
   </div>
 </template>
 
 <style scoped>
+/* Senin Özel CSS Tasarımın Aynen Korundu */
 .page-wrapper {
   @apply min-h-screen flex flex-col font-sans bg-gray-50;
   overflow-x: hidden;
@@ -449,9 +471,6 @@ onMounted(() => {
   position: relative;
   z-index: 10;
 }
-.product-grid {
-  /* Tailwind sınıfları template içinde tanımlandı */
-}
 .product-card {
   @apply bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-gray-100 flex flex-col h-full relative;
   z-index: 10;
@@ -462,15 +481,9 @@ onMounted(() => {
 .card-image {
   @apply w-full h-full object-cover transform group-hover:scale-110 transition duration-500;
 }
-.card-actions-overlay {
-  /* Tailwind sınıfları template içinde tanımlandı */
-}
 .icon-btn {
   @apply rounded-xl shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center;
   background: rgba(255, 255, 255, 0.9);
-}
-.card-body {
-  /* Tailwind sınıfları template içinde tanımlandı */
 }
 .category-tag {
   @apply font-bold text-blue-600 uppercase tracking-wider mb-1 block;
@@ -478,13 +491,22 @@ onMounted(() => {
 .product-title {
   @apply text-gray-900 leading-tight line-clamp-1;
 }
-.card-footer {
-  /* Tailwind sınıfları template içinde tanımlandı */
-}
 .product-price {
   @apply font-bold text-gray-900;
 }
 .current-page-badge {
   @apply flex items-center justify-center bg-pink-500 text-white rounded-full font-bold shadow-md;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+.spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4;
 }
 </style>
