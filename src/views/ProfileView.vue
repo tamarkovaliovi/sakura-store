@@ -103,34 +103,50 @@ onMounted(() => {
 
       <div v-else class="profile-container animate-fade-in">
         <div class="page-header text-center lg:text-left">
-          <h1 class="page-title text-blue-900 text-2xl md:text-3xl">Hesabım</h1>
-          <p class="welcome-text italic text-sm md:text-base">
-            Hoş geldin, <span class="user-highlight text-pink-500">{{ user.name }}</span
+          <h1 class="page-title text-blue-900 text-2xl md:text-3xl font-bold">Hesabım</h1>
+          <p class="welcome-text italic text-sm md:text-base mt-2">
+            Hoş geldin,
+            <span class="user-highlight text-pink-500 font-bold">{{ user.name }}</span
             >!
           </p>
         </div>
 
-        <div class="profile-grid">
-          <div class="sidebar-column">
-            <div class="sidebar-card shadow-sm border border-gray-100">
-              <div class="user-info p-6 md:p-8">
-                <div class="avatar-wrapper">
-                  <img :src="user.avatar" :alt="user.name" class="user-avatar" />
+        <div class="profile-grid grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+          <div class="sidebar-column space-y-6">
+            <div
+              class="sidebar-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+            >
+              <div class="user-info p-6 md:p-8 text-center">
+                <div class="avatar-wrapper mb-4 flex justify-center">
+                  <img
+                    :src="user.avatar"
+                    :alt="user.name"
+                    class="user-avatar w-24 h-24 rounded-full object-cover border-4 border-pink-50 shadow-sm"
+                  />
                 </div>
 
-                <div class="name-container">
-                  <h3 class="user-name text-lg md:text-xl">{{ user.name }}</h3>
-                  <div class="role-badge-wrapper">
-                    <span class="role-dot"></span>
-                    <span class="user-role-text">
+                <div class="name-container mb-2">
+                  <h3 class="user-name text-lg md:text-xl font-bold text-gray-800">
+                    {{ user.name }}
+                  </h3>
+                  <div
+                    class="role-badge-wrapper flex items-center justify-center gap-2 mt-1"
+                  >
+                    <span class="role-dot w-2 h-2 rounded-full bg-green-500"></span>
+                    <span class="user-role-text text-xs text-gray-500 font-medium">
                       {{ user.role === "admin" ? "Yönetici" : "Müşteri" }}
                     </span>
                   </div>
                 </div>
 
-                <p class="user-email truncate w-full max-w-[200px]">{{ user.email }}</p>
+                <p class="user-email text-sm text-gray-400 truncate px-4 mb-6">
+                  {{ user.email }}
+                </p>
 
-                <button @click="showModal = true" class="edit-profile-btn mt-6 group">
+                <button
+                  @click="showModal = true"
+                  class="edit-profile-btn inline-flex items-center px-4 py-2 bg-gray-50 text-gray-700 text-sm rounded-xl hover:bg-pink-50 hover:text-pink-600 transition-all group"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     class="h-4 w-4 mr-2"
@@ -150,9 +166,14 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="sidebar-card shadow-sm border border-gray-100">
-              <nav class="sidebar-nav">
-                <a href="#" class="nav-link active-link">
+            <div
+              class="sidebar-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+            >
+              <nav class="sidebar-nav flex flex-col">
+                <RouterLink
+                  to="/profile"
+                  class="nav-link flex items-center p-4 hover:bg-pink-50 transition-colors border-l-4 border-pink-500 bg-pink-50 text-pink-600 font-bold"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     class="h-5 w-5 mr-3"
@@ -168,11 +189,15 @@ onMounted(() => {
                     />
                   </svg>
                   Profil Bilgilerim
-                </a>
-                <a href="#" class="nav-link group">
+                </RouterLink>
+
+                <RouterLink
+                  to="/orders"
+                  class="nav-link flex items-center p-4 text-gray-600 hover:bg-gray-50 transition-colors group"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5 mr-3"
+                    class="h-5 w-5 mr-3 group-hover:text-pink-500"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -185,11 +210,15 @@ onMounted(() => {
                     />
                   </svg>
                   Siparişlerim
-                </a>
-                <a href="#" class="nav-link group">
+                </RouterLink>
+
+                <RouterLink
+                  to="/favorites"
+                  class="nav-link flex items-center p-4 text-gray-600 hover:bg-gray-50 transition-colors group"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5 mr-3"
+                    class="h-5 w-5 mr-3 group-hover:text-pink-500"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -202,7 +231,8 @@ onMounted(() => {
                     />
                   </svg>
                   Favorilerim
-                </a>
+                </RouterLink>
+
                 <div class="p-4 border-t border-gray-50">
                   <CustomButton mode="logout" @click="handleLogout" />
                 </div>
@@ -210,21 +240,27 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="content-column">
-            <div
-              class="stats-grid grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6"
-            >
-              <div class="stat-card group shadow-sm border border-gray-100 p-4 md:p-6">
+          <div class="content-column lg:col-span-2 space-y-6">
+            <div class="stats-grid grid grid-cols-2 gap-4 md:gap-6">
+              <div
+                class="stat-card group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex justify-between items-center hover:border-blue-200 transition-all"
+              >
                 <div>
-                  <p class="stat-title text-[8px] md:text-[10px]">Siparişlerim</p>
-                  <h4 class="stat-value text-blue-900 text-xl md:text-3xl">0</h4>
+                  <p
+                    class="stat-title text-gray-400 text-xs uppercase tracking-wider mb-1"
+                  >
+                    Siparişlerim
+                  </p>
+                  <h4 class="stat-value text-blue-900 text-2xl md:text-3xl font-black">
+                    0
+                  </h4>
                 </div>
                 <div
-                  class="stat-icon-bg h-10 w-10 md:h-12 md:w-12 bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all"
+                  class="stat-icon-bg h-12 w-12 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5 md:h-6 md:w-6"
+                    class="h-6 w-6"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -238,17 +274,26 @@ onMounted(() => {
                   </svg>
                 </div>
               </div>
-              <div class="stat-card group shadow-sm border border-gray-100 p-4 md:p-6">
+
+              <div
+                class="stat-card group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex justify-between items-center hover:border-orange-200 transition-all"
+              >
                 <div>
-                  <p class="stat-title text-[8px] md:text-[10px]">İndirim Kuponu</p>
-                  <h4 class="stat-value text-orange-500 text-xl md:text-3xl">2</h4>
+                  <p
+                    class="stat-title text-gray-400 text-xs uppercase tracking-wider mb-1"
+                  >
+                    İndirim Kuponu
+                  </p>
+                  <h4 class="stat-value text-orange-500 text-2xl md:text-3xl font-black">
+                    2
+                  </h4>
                 </div>
                 <div
-                  class="stat-icon-bg h-10 w-10 md:h-12 md:w-12 bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all"
+                  class="stat-icon-bg h-12 w-12 rounded-xl flex items-center justify-center bg-orange-50 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5 md:h-6 md:w-6"
+                    class="h-6 w-6"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -265,12 +310,14 @@ onMounted(() => {
             </div>
 
             <div
-              class="empty-orders-card shadow-sm border border-pink-100 bg-white p-8 md:p-12 min-h-[300px] md:min-h-[350px]"
+              class="empty-orders-card bg-white rounded-3xl shadow-sm border border-pink-100 p-12 text-center flex flex-col items-center justify-center min-h-[350px]"
             >
-              <div class="empty-orders-icon bg-pink-50 w-16 h-16 md:w-24 md:h-24">
+              <div
+                class="empty-orders-icon bg-pink-50 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mb-6"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-8 w-8 md:h-12 md:w-12 text-pink-200"
+                  class="h-10 w-10 md:h-12 md:w-12 text-pink-200"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -284,52 +331,80 @@ onMounted(() => {
                 </svg>
               </div>
               <h3
-                class="empty-orders-title font-extrabold text-blue-900 uppercase tracking-tight text-sm md:text-base"
+                class="empty-orders-title font-extrabold text-blue-900 uppercase tracking-tight text-base mb-2"
               >
                 Henüz Siparişiniz Yok
               </h3>
-              <p class="empty-orders-desc italic text-xs md:text-sm mb-6 text-gray-400">
+              <p class="empty-orders-desc italic text-sm text-gray-400 mb-8">
                 SakuraStore koleksiyonuna göz atmak ister misiniz?
               </p>
               <RouterLink
-                to="/"
-                class="shopping-btn shadow-md hover:shadow-pink-200 transition-all text-[10px] md:text-xs"
-                >Alışverişe Başla</RouterLink
+                to="/Allproducts"
+                class="shopping-btn bg-pink-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition-all"
               >
+                Alışverişe Başla
+              </RouterLink>
             </div>
           </div>
         </div>
       </div>
     </main>
 
-    <div v-if="showModal" class="modal-overlay px-4">
+    <div
+      v-if="showModal"
+      class="modal-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-[100] px-4 backdrop-blur-sm"
+    >
       <div
-        class="modal-card animate-pop-in border-t-4 border-pink-500 max-w-[95%] md:max-w-md p-6 md:p-10"
+        class="modal-card bg-white animate-pop-in border-t-8 border-pink-500 rounded-[2rem] w-full max-w-md p-8 md:p-10 shadow-2xl relative"
       >
-        <div class="modal-header">
-          <h3 class="text-lg md:text-xl font-bold text-blue-900">Profili Düzenle</h3>
-          <button @click="showModal = false" class="close-modal-btn">✕</button>
+        <div class="modal-header flex justify-between items-center mb-8">
+          <h3 class="text-xl font-bold text-blue-900 uppercase tracking-tighter">
+            Profili Düzenle
+          </h3>
+          <button
+            @click="showModal = false"
+            class="close-modal-btn text-gray-400 hover:text-red-500 text-2xl transition-colors"
+          >
+            ✕
+          </button>
         </div>
-        <div class="modal-body space-y-4 md:space-y-5">
+        <div class="modal-body space-y-6">
           <div class="input-field">
-            <label class="modal-label">İsim Soyisim</label>
-            <input v-model="editForm.name" type="text" class="modal-input" />
+            <label
+              class="modal-label block text-xs font-bold text-gray-400 uppercase mb-2"
+              >İsim Soyisim</label
+            >
+            <input
+              v-model="editForm.name"
+              type="text"
+              class="modal-input w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-pink-300 transition-all"
+            />
           </div>
           <div class="input-field">
-            <label class="modal-label">Profil Fotoğraf URL</label>
-            <input v-model="editForm.avatar" type="text" class="modal-input" />
+            <label
+              class="modal-label block text-xs font-bold text-gray-400 uppercase mb-2"
+              >Profil Fotoğraf URL</label
+            >
+            <input
+              v-model="editForm.avatar"
+              type="text"
+              class="modal-input w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-pink-300 transition-all"
+            />
           </div>
         </div>
-        <div class="modal-footer flex space-x-3 mt-6 md:mt-8">
-          <button @click="showModal = false" class="cancel-btn text-[10px] md:text-xs">
+        <div class="modal-footer flex space-x-3 mt-10">
+          <button
+            @click="showModal = false"
+            class="cancel-btn flex-1 py-4 border border-gray-100 rounded-2xl font-bold text-gray-400 hover:bg-gray-50 transition-all"
+          >
             İptal
           </button>
           <button
             @click="handleUpdateUser"
             :disabled="updating"
-            class="save-btn bg-pink-500 hover:bg-pink-600 text-[10px] md:text-xs"
+            class="save-btn flex-1 py-4 bg-pink-500 text-white rounded-2xl font-bold hover:bg-pink-600 shadow-lg shadow-pink-100 disabled:opacity-50 transition-all"
           >
-            {{ updating ? "..." : "Kaydet" }}
+            {{ updating ? "Güncelleniyor..." : "Kaydet" }}
           </button>
         </div>
       </div>
@@ -338,9 +413,7 @@ onMounted(() => {
     <AppFooter />
   </div>
 </template>
-
 <style scoped>
-/* Responsive Düzenlemeler için Ek CSS */
 .page-wrapper {
   @apply min-h-screen flex flex-col bg-gray-50;
   max-width: 100vw;
@@ -415,7 +488,6 @@ onMounted(() => {
 .content-column {
   @apply lg:col-span-3 space-y-6;
 }
-/* Stat Grid CSS Template içinde inline responsive yapıldı */
 
 .stat-card {
   @apply bg-white rounded-3xl flex items-center justify-between hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-blue-100;
@@ -490,7 +562,6 @@ onMounted(() => {
   }
 }
 
-/* Küçük telefonlar için spinner küçültme */
 .spinner {
   @apply animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-b-2 border-blue-600 mx-auto mb-4;
 }
