@@ -5,13 +5,15 @@ import AppFooter from "@/components/AppFooter.vue";
 import localBanner from "@/components/pictures/home.jpg";
 import tukendiImage from "@/components/pictures/tukendi.jpg";
 import CustomButton from "@/components/CustomButton.vue";
-import { addToCart } from "@/stores/cart";
+
+import { useCartStore } from "@/stores/cart";
+
+const store = useCartStore();
 
 const homeImage = localBanner;
 const products = ref([]);
 const loading = ref(true);
 
-// API Base URL (HTTPS olduğundan emin oluyoruz)
 const API_BASE_URL = "https://api.escuelajs.co";
 
 const scrollToProducts = () => {
@@ -23,7 +25,6 @@ const scrollToProducts = () => {
 
 const fetchProducts = async () => {
   try {
-    // API isteği limitli ve güvenli
     const response = await fetch(`${API_BASE_URL}/api/v1/products?offset=0&limit=20`);
     if (!response.ok) throw new Error("Veri çekilemedi");
     const data = await response.json();
@@ -35,26 +36,15 @@ const fetchProducts = async () => {
   }
 };
 
-/**
- * API'den gelen bozuk resim URL'lerini temizler.
- * [ "url" ] gibi gelen dizileri veya tırnak işaretlerini ayıklar.
- */
 const formatImage = (imgUrl) => {
   if (!imgUrl) return tukendiImage;
-
-  // Eğer veri dizi olarak geldiyse ilkini al
   let url = Array.isArray(imgUrl) ? imgUrl[0] : imgUrl;
-
-  // Gereksiz karakterleri temizle (Vite/Render uyumu için kritik)
   let cleaned = String(url)
     .replace(/[\[\]"]/g, "")
     .trim();
-
-  // Eğer temizlenen URL boşsa veya geçerli bir link değilse varsayılan resmi dön
   if (!cleaned || !cleaned.startsWith("http")) {
     return "https://placehold.co/600x600?text=Gorsel+Yok";
   }
-
   return cleaned;
 };
 
@@ -90,23 +80,54 @@ onMounted(() => {
       </div>
     </section>
 
-    <main id="products-section" class="main-content">
-      <h2 class="section-title">Yeni Gelenler</h2>
+    <main id="products-section" class="main-content p-6">
+      <h2 class="section-title text-2xl font-bold mb-6">Yeni Gelenler</h2>
 
       <div v-if="loading" class="loading-state">
-        <div class="animate-pulse text-xl font-semibold text-gray-400">
+        <div class="animate-pulse text-xl font-semibold text-gray-400 text-center py-10">
           Ürünler hazırlanıyor...
         </div>
       </div>
 
-      <div v-else class="product-grid">
-        <div v-for="product in products" :key="product.id" class="product-card group">
+      <div
+        v-else
+        class="product-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+      >
+        <div
+          v-for="product in products"
+          :key="product.id"
+          class="product-card group border rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all relative bg-white"
+        >
+          <button
+            @click="store.toggleFavorite(product)"
+            class="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 hover:bg-white shadow-sm transition-all"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 transition-colors"
+              :class="
+                store.isFavorite(product.id)
+                  ? 'fill-red-500 text-red-500'
+                  : 'text-gray-400'
+              "
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+          </button>
+
           <router-link :to="{ name: 'product-details', params: { id: product.id } }">
-            <div class="card-image-wrapper">
+            <div class="card-image-wrapper h-64 overflow-hidden">
               <img
                 :src="formatImage(product.images)"
                 :alt="product.title"
-                class="card-image"
+                class="card-image w-full h-full object-cover group-hover:scale-105 transition-transform"
                 @error="
                   (e) =>
                     (e.target.src = 'https://placehold.co/400x400?text=Resim+Bulunamadi')
@@ -115,25 +136,29 @@ onMounted(() => {
             </div>
           </router-link>
 
-          <div class="card-body">
-            <span class="category-tag">
+          <div class="card-body p-4">
+            <span
+              class="category-tag text-xs font-medium text-pink-500 uppercase tracking-wider"
+            >
               {{ product.category?.name || "Genel" }}
             </span>
 
             <router-link :to="{ name: 'product-details', params: { id: product.id } }">
-              <h3 class="product-title">
+              <h3 class="product-title font-semibold text-gray-800 mt-1 truncate">
                 {{ product.title }}
               </h3>
             </router-link>
 
-            <span class="product-price">{{ product.price }}$</span>
+            <span class="product-price block mt-2 text-lg font-bold text-gray-900"
+              >{{ product.price }}$</span
+            >
 
-            <div class="card-footer">
+            <div class="card-footer mt-4">
               <div class="flex justify-center">
                 <CustomButton
                   mode="add-to-cart"
                   :product="product"
-                  @click="addToCart(product)"
+                  @click="store.addToCart(product)"
                 />
               </div>
             </div>
@@ -145,7 +170,6 @@ onMounted(() => {
     <AppFooter />
   </div>
 </template>
-
 <style scoped>
 .page-wrapper {
   @apply min-h-screen flex flex-col font-sans bg-gray-50;
