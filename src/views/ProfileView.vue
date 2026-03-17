@@ -8,41 +8,35 @@ import CustomButton from "@/components/CustomButton.vue";
 
 const router = useRouter();
 const orderStore = useOrderStore();
+
 const loading = ref(true);
 const updating = ref(false);
 const showModal = ref(false);
-const user = ref({ name: "", email: "", avatar: "", role: "", id: null });
-
 const activeTab = ref("lastOrder");
 
+const user = ref({ id: null, name: "", email: "", avatar: "", role: "" });
+const editForm = ref({ name: "", avatar: "" });
+
+const toast = ref({ show: false, message: "", type: "success" });
+
+const showToast = (msg, type = "success") => {
+  toast.value = { show: true, message: msg, type };
+  setTimeout(() => {
+    toast.value.show = false;
+  }, 3000);
+};
+
+const API_BASE_URL = "https://api.escuelajs.co";
+
 const coupons = ref([
-  {
-    code: "SAKURA20",
-    discount: "%20 İndirim",
-    desc: "Tüm koleksiyonda geçerli",
-    expiry: "30.04.2026",
-  },
-  {
-    code: "MERHABA10",
-    discount: "10$ İndirim",
-    desc: "50$ ve üzeri siparişlerde",
-    expiry: "15.05.2026",
-  },
-  {
-    code: "SPRING15",
-    discount: "%15 İndirim",
-    desc: "Bahar ürünlerinde geçerli",
-    expiry: "10.06.2026",
-  },
+  { code: "SAKURA20", discount: "%20 İndirim", desc: "Tüm koleksiyonda geçerli" },
+  { code: "SPRING15", discount: "%15 İndirim", desc: "Bahar ürünlerinde geçerli" },
 ]);
 
 const copyCoupon = (code) => {
   navigator.clipboard.writeText(code);
-  alert(`✅ Kupon kodu kopyalandı: ${code}`);
+  showToast(`✅ ${code} kopyalandı!`, "success");
 };
-
-const API_BASE_URL = "https://api.escuelajs.co";
-const editForm = ref({ name: "", avatar: "" });
 
 const fetchUserProfile = async () => {
   const token = localStorage.getItem("user_token");
@@ -55,38 +49,54 @@ const fetchUserProfile = async () => {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     });
+
     if (response.ok) {
       const data = await response.json();
       user.value = data;
-      editForm.value.name = data.name;
-      editForm.value.avatar = data.avatar;
+      editForm.value = { name: data.name, avatar: data.avatar };
     } else {
       handleLogout();
     }
   } catch (error) {
-    console.error("Hata:", error);
+    console.error("Profil Hatası:", error);
+    showToast("Bağlantı hatası oluştu!", "error");
   } finally {
     loading.value = false;
   }
 };
 
 const handleUpdateUser = async () => {
+  if (!user.value.id) {
+    showToast("Kullanıcı ID bulunamadı!", "error");
+    return;
+  }
+
   updating.value = true;
   const token = localStorage.getItem("user_token");
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/users/${user.value.id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ name: editForm.value.name, avatar: editForm.value.avatar }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: editForm.value.name,
+        avatar: editForm.value.avatar,
+      }),
     });
+
     if (response.ok) {
       const updatedData = await response.json();
       user.value = updatedData;
       showModal.value = false;
-      alert("✅ Profil güncellendi!");
+      showToast("Profil başarıyla güncellendi!", "success");
+    } else {
+      showToast("Güncelleme başarısız.", "error");
     }
   } catch (error) {
-    console.error("Hata:", error);
+    showToast("Bir hata oluştu.", "error");
   } finally {
     updating.value = false;
   }
@@ -96,78 +106,97 @@ const handleLogout = () => {
   localStorage.clear();
   window.location.href = "/login";
 };
+
 onMounted(() => {
   fetchUserProfile();
 });
 </script>
 
 <template>
-  <div class="page-wrapper min-h-screen bg-gray-50 flex flex-col font-sans">
+  <div class="page-wrapper min-h-screen bg-[#FDFCFD] flex flex-col font-sans">
     <Header />
 
+    <Transition name="slide-fade">
+      <div
+        v-if="toast.show"
+        :class="[
+          'fixed top-5 right-5 z-[200] px-6 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 text-white font-bold',
+          toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500',
+        ]"
+      >
+        <span>{{ toast.message }}</span>
+      </div>
+    </Transition>
+
     <main class="flex-grow w-full max-w-7xl mx-auto px-6 py-10">
-      <div v-if="loading" class="text-center py-20 text-gray-400 italic font-medium">
-        Yükleniyor...
+      <div v-if="loading" class="flex flex-col items-center justify-center py-40">
+        <div
+          class="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"
+        ></div>
       </div>
 
-      <div v-else class="animate-fade-in">
-        <div class="mb-8 px-2">
+      <div v-else class="animate-in fade-in duration-700">
+        <div class="mb-10">
           <h1
-            class="text-2xl md:text-3xl font-black text-indigo-900 uppercase tracking-tight"
+            class="text-3xl font-black text-indigo-950 uppercase tracking-tighter italic"
           >
-            Hesabım
+            HESABIM
           </h1>
-          <p class="text-gray-400 text-sm italic">
+          <p class="text-gray-400 text-sm">
             Hoş geldin,
-            <span class="text-pink-500 font-bold uppercase">{{ user.name }}</span
-            >!
+            <span class="text-pink-500 font-black uppercase">{{ user.name }}</span>
           </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div class="lg:col-span-3 space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div class="lg:col-span-3 space-y-4">
             <div
-              class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 text-center"
+              class="bg-white rounded-[2rem] border border-gray-100 p-8 text-center shadow-sm"
             >
-              <img
-                :src="user.avatar"
-                class="w-20 h-20 rounded-full border-4 border-pink-50 shadow-sm mx-auto mb-4 object-cover"
-              />
-              <h3 class="font-bold text-gray-800 uppercase text-sm tracking-tight">
+              <div class="relative inline-block group">
+                <img
+                  :src="user.avatar"
+                  class="w-24 h-24 rounded-full border-4 border-pink-50 shadow-inner object-cover mb-4 mx-auto"
+                />
+              </div>
+              <h3 class="font-black text-indigo-950 text-base uppercase">
                 {{ user.name }}
               </h3>
-              <p class="text-[11px] text-gray-400 truncate mb-6">{{ user.email }}</p>
+              <p class="text-[10px] text-gray-400 font-medium mb-6">{{ user.email }}</p>
               <button
                 @click="showModal = true"
-                class="w-full py-2 bg-gray-50 text-gray-600 text-[10px] font-black rounded-xl hover:bg-pink-50 hover:text-pink-600 transition-all uppercase tracking-widest border border-transparent"
+                class="w-full py-3 bg-indigo-950 text-white text-[10px] font-black rounded-2xl hover:bg-pink-500 transition-all uppercase tracking-widest"
               >
                 Profili Düzenle
               </button>
             </div>
 
             <nav
-              class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden text-sm"
+              class="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm"
             >
-              <RouterLink
-                to="/profile"
-                class="flex items-center p-4 border-l-4 border-pink-500 bg-pink-50 text-pink-600 font-bold"
-                >Profil Bilgilerim</RouterLink
+              <button
+                @click="router.push('/profile')"
+                class="w-full flex items-center p-5 text-pink-600 bg-pink-50/50 font-black text-xs uppercase border-l-4 border-pink-500"
               >
-              <RouterLink
-                to="/orders"
-                class="flex items-center p-4 text-gray-500 hover:bg-gray-50 font-bold transition-all border-l-4 border-transparent"
-                >Siparişlerim</RouterLink
+                <i class="fas fa-user-circle mr-3"></i> Profilim
+              </button>
+              <button
+                @click="router.push('/orders')"
+                class="w-full flex items-center p-5 text-gray-400 hover:text-indigo-950 font-black text-xs uppercase border-l-4 border-transparent transition-all"
               >
-              <RouterLink
-                to="/favorites"
-                class="flex items-center p-4 text-gray-500 hover:bg-gray-50 font-bold transition-all border-l-4 border-transparent"
-                >Favorilerim</RouterLink
+                <i class="fas fa-shopping-bag mr-3"></i> Siparişlerim
+              </button>
+              <button
+                @click="router.push('/favorites')"
+                class="w-full flex items-center p-5 text-gray-400 hover:text-indigo-950 font-black text-xs uppercase border-l-4 border-transparent transition-all"
               >
-              <div class="p-3 border-t border-gray-50">
+                <i class="fas fa-heart mr-3"></i> Favorilerim
+              </button>
+              <div class="p-4 bg-gray-50/50">
                 <CustomButton
                   mode="logout"
                   @click="handleLogout"
-                  class="w-full text-[10px]"
+                  class="w-full !rounded-xl !text-[9px]"
                 />
               </div>
             </nav>
@@ -177,168 +206,123 @@ onMounted(() => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div
                 @click="activeTab = 'lastOrder'"
-                class="cursor-pointer bg-white rounded-3xl shadow-sm border p-6 flex justify-between items-center transition-all hover:border-indigo-200"
-                :class="
+                :class="[
+                  'cursor-pointer p-8 rounded-[2rem] border-2 transition-all flex justify-between items-center',
                   activeTab === 'lastOrder'
-                    ? 'border-indigo-300 ring-2 ring-indigo-50'
-                    : 'border-gray-100'
-                "
+                    ? 'border-indigo-500 bg-white shadow-lg shadow-indigo-100'
+                    : 'border-gray-100 bg-white shadow-sm',
+                ]"
               >
                 <div>
                   <p
-                    class="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-1"
+                    class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2"
                   >
-                    Siparişlerim
+                    Toplam Sipariş
                   </p>
-                  <h4 class="text-indigo-900 text-2xl font-black">
-                    {{ orderStore.orders.length }}
-                  </h4>
+                  <span class="text-4xl font-black text-indigo-950">{{
+                    orderStore.orders?.length || 0
+                  }}</span>
                 </div>
                 <div
-                  class="h-12 w-12 rounded-2xl flex items-center justify-center bg-indigo-50 text-indigo-500"
+                  class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 text-xl"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                    />
-                  </svg>
+                  <i class="fas fa-box"></i>
                 </div>
               </div>
 
               <div
                 @click="activeTab = 'coupons'"
-                class="cursor-pointer bg-white rounded-3xl shadow-sm border p-6 flex justify-between items-center transition-all hover:border-orange-200"
-                :class="
+                :class="[
+                  'cursor-pointer p-8 rounded-[2rem] border-2 transition-all flex justify-between items-center',
                   activeTab === 'coupons'
-                    ? 'border-orange-300 ring-2 ring-orange-50'
-                    : 'border-gray-100'
-                "
+                    ? 'border-orange-500 bg-white shadow-lg shadow-orange-100'
+                    : 'border-gray-100 bg-white shadow-sm',
+                ]"
               >
                 <div>
                   <p
-                    class="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-1"
+                    class="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-2"
                   >
-                    İndirim Kuponu
+                    Özel Kuponlar
                   </p>
-                  <h4 class="text-orange-500 text-2xl font-black">
-                    {{ coupons.length }}
-                  </h4>
+                  <span class="text-4xl font-black text-orange-500">{{
+                    coupons.length
+                  }}</span>
                 </div>
                 <div
-                  class="h-12 w-12 rounded-2xl flex items-center justify-center bg-orange-50 text-orange-500"
+                  class="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500 text-xl"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 5v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-2a2 2 0 00-2-2h-2a2 2 0 00-2 2v2"
-                    />
-                  </svg>
+                  <i class="fas fa-ticket-alt"></i>
                 </div>
               </div>
             </div>
 
-            <div class="transition-all duration-300">
+            <div
+              class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-10 min-h-[400px]"
+            >
               <div v-if="activeTab === 'lastOrder'">
-                <div
-                  v-if="orderStore.hasOrders"
-                  class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 animate-fade-in"
-                >
+                <div v-if="orderStore.orders?.length > 0" class="space-y-6">
+                  <h3 class="text-indigo-950 font-black text-sm uppercase italic">
+                    Son Etkinlik
+                  </h3>
                   <div
-                    class="flex justify-between items-center mb-6 border-b border-gray-50 pb-4"
+                    class="bg-gray-50 rounded-3xl p-8 flex items-center justify-between border border-gray-100"
                   >
-                    <h3 class="font-black text-indigo-900 uppercase text-xs">
-                      Son Siparişiniz
-                    </h3>
-                    <RouterLink
-                      to="/orders"
-                      class="text-pink-500 text-[10px] font-black hover:underline uppercase tracking-widest"
-                      >Tümünü Gör</RouterLink
-                    >
-                  </div>
-                  <div
-                    class="flex items-center justify-between bg-gray-50 p-6 rounded-2xl"
-                  >
-                    <div>
-                      <p class="text-[9px] text-gray-400 font-bold uppercase mb-1">No</p>
-                      <p class="font-bold text-gray-800 text-sm">
+                    <div class="flex items-center space-x-6">
+                      <div
+                        class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-indigo-900"
+                      >
                         #{{ orderStore.orders[0].id }}
-                      </p>
+                      </div>
+                      <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">Durum</p>
+                        <p class="text-xs font-black text-emerald-500 uppercase">
+                          {{ orderStore.orders[0].status }}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p class="text-[9px] text-gray-400 font-bold uppercase mb-1">
-                        Tutar
-                      </p>
-                      <p class="font-black text-indigo-900 text-lg">
+                    <div class="text-right">
+                      <p class="text-[10px] font-bold text-gray-400 uppercase">Toplam</p>
+                      <p class="text-xl font-black text-indigo-950">
                         ${{ orderStore.orders[0].total }}
                       </p>
-                    </div>
-                    <div
-                      class="px-4 py-1.5 bg-white text-orange-600 rounded-lg text-[9px] font-black uppercase border border-orange-100"
-                    >
-                      {{ orderStore.orders[0].status }}
                     </div>
                   </div>
                 </div>
                 <div
                   v-else
-                  class="bg-white rounded-3xl p-10 text-center border border-gray-100 text-gray-400 italic text-sm"
+                  class="flex flex-col items-center justify-center py-20 text-gray-300"
                 >
-                  Henüz siparişiniz yok.
+                  <i class="fas fa-folder-open text-5xl mb-4"></i>
+                  <p class="italic text-sm">Görüntülenecek sipariş bulunamadı.</p>
                 </div>
               </div>
 
-              <div
-                v-else-if="activeTab === 'coupons'"
-                class="bg-white rounded-3xl shadow-sm border border-orange-100 p-8 animate-fade-in"
-              >
-                <h3
-                  class="font-black text-orange-600 uppercase text-xs mb-6 border-b border-gray-50 pb-4"
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  v-for="c in coupons"
+                  :key="c.code"
+                  class="p-6 border-2 border-dashed border-orange-100 rounded-3xl bg-orange-50/20 group hover:border-orange-300 transition-all"
                 >
-                  Kuponlarım
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div
-                    v-for="coupon in coupons"
-                    :key="coupon.code"
-                    class="bg-orange-50/40 border border-dashed border-orange-200 p-5 rounded-2xl flex flex-col justify-between group hover:bg-orange-50 transition-all"
-                  >
-                    <div>
-                      <p
-                        class="text-orange-600 font-black text-sm tracking-widest uppercase mb-1"
-                      >
-                        {{ coupon.code }}
-                      </p>
-                      <p class="text-indigo-900 font-bold text-xs">
-                        {{ coupon.discount }}
-                      </p>
-                      <p class="text-gray-400 text-[10px] italic mt-1">
-                        {{ coupon.desc }}
-                      </p>
-                    </div>
-                    <button
-                      @click="copyCoupon(coupon.code)"
-                      class="mt-4 w-full bg-white text-orange-500 py-2 rounded-xl text-[9px] font-black uppercase border border-orange-100 hover:bg-orange-500 hover:text-white transition-all"
+                  <div class="flex justify-between items-start mb-4">
+                    <span
+                      class="px-3 py-1 bg-white rounded-lg text-[10px] font-black text-orange-600 shadow-sm"
+                      >{{ c.code }}</span
                     >
-                      Kodu Kopyala
-                    </button>
+                    <i
+                      class="fas fa-gift text-orange-200 group-hover:text-orange-400"
+                    ></i>
                   </div>
+                  <h4 class="text-indigo-950 font-black text-lg mb-1">
+                    {{ c.discount }}
+                  </h4>
+                  <p class="text-gray-400 text-[10px] mb-4">{{ c.desc }}</p>
+                  <button
+                    @click="copyCoupon(c.code)"
+                    class="w-full py-2 bg-orange-500 text-white text-[9px] font-black rounded-xl uppercase shadow-md shadow-orange-100"
+                  >
+                    Kopyala
+                  </button>
                 </div>
               </div>
             </div>
@@ -347,51 +331,87 @@ onMounted(() => {
       </div>
     </main>
 
-    <div
-      v-if="showModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm"
-    >
-      <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl animate-pop-in">
-        <h3 class="text-lg font-black text-indigo-900 uppercase mb-6 tracking-tight">
-          Profili Düzenle
-        </h3>
-        <div class="space-y-4 text-sm">
-          <input
-            v-model="editForm.name"
-            type="text"
-            placeholder="İsim Soyisim"
-            class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-pink-200"
-          />
-          <input
-            v-model="editForm.avatar"
-            type="text"
-            placeholder="Fotoğraf URL"
-            class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-pink-200"
-          />
-        </div>
-        <div class="flex gap-3 mt-8">
-          <button
-            @click="showModal = false"
-            class="flex-1 py-3 text-gray-400 font-bold text-xs uppercase"
-          >
-            İptal
-          </button>
-          <button
-            @click="handleUpdateUser"
-            :disabled="updating"
-            class="flex-1 py-3 bg-pink-500 text-white rounded-xl font-black text-xs uppercase shadow-md hover:bg-pink-600"
-          >
-            Güncelle
-          </button>
+    <Transition name="fade">
+      <div
+        v-if="showModal"
+        class="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-indigo-950/40 backdrop-blur-md"
+      >
+        <div
+          class="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl animate-in zoom-in duration-300"
+        >
+          <div class="flex justify-between items-center mb-8">
+            <h3
+              class="text-xl font-black text-indigo-950 uppercase italic tracking-tighter"
+            >
+              Profilini Yenile
+            </h3>
+            <button
+              @click="showModal = false"
+              class="text-gray-300 hover:text-pink-500 transition-colors"
+            >
+              <i class="fas fa-times-circle text-2xl"></i>
+            </button>
+          </div>
+          <div class="space-y-6">
+            <div class="space-y-2">
+              <label
+                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
+                >Görünür İsim</label
+              >
+              <input
+                v-model="editForm.name"
+                type="text"
+                class="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-pink-200 rounded-2xl outline-none transition-all font-bold text-indigo-950"
+              />
+            </div>
+            <div class="space-y-2">
+              <label
+                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2"
+                >Avatar Görseli (URL)</label
+              >
+              <input
+                v-model="editForm.avatar"
+                type="text"
+                class="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-pink-200 rounded-2xl outline-none transition-all font-bold text-indigo-950 text-xs"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mt-10">
+            <button
+              @click="showModal = false"
+              class="py-4 text-gray-400 font-black text-[10px] uppercase hover:text-gray-600"
+            >
+              Vazgeç
+            </button>
+            <button
+              @click="handleUpdateUser"
+              :disabled="updating"
+              class="py-4 bg-pink-500 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg shadow-pink-100 hover:bg-pink-600 disabled:opacity-50"
+            >
+              {{ updating ? "Yükleniyor..." : "Güncellemeleri Kaydet" }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <AppFooter />
   </div>
 </template>
 
 <style scoped>
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css");
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateX(30px);
+  opacity: 0;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
