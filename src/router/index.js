@@ -9,6 +9,8 @@ import ProductDetailsView from '../views/ProductDetailsView.vue';
 import EditProductView from '../views/EditProductView.vue';
 import CategoriesView from '../components/Categories.vue';
 import FavoritesView from '../views/FavoritesView.vue';
+// Yeni eklediğimiz sayfa:
+import OrdersView from '../views/OrdersView.vue';
 
 const routes = [
   {
@@ -60,6 +62,12 @@ const routes = [
     path: '/kategoriler',
     name: 'Categories',
     component: CategoriesView 
+  },
+  
+  {
+    path: '/orders',
+    name: 'orders',
+    component: OrdersView
   }
 ];
 

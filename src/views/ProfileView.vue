@@ -1,11 +1,13 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useOrderStore } from "@/stores/orderStore"; // EKLEDİK
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 
 const router = useRouter();
+const orderStore = useOrderStore(); // EKLEDİK
 const loading = ref(true);
 const updating = ref(false);
 const showModal = ref(false);
@@ -252,7 +254,7 @@ onMounted(() => {
                     Siparişlerim
                   </p>
                   <h4 class="stat-value text-blue-900 text-2xl md:text-3xl font-black">
-                    0
+                    {{ orderStore.orders.length }}
                   </h4>
                 </div>
                 <div
@@ -310,6 +312,36 @@ onMounted(() => {
             </div>
 
             <div
+              v-if="orderStore.hasOrders"
+              class="last-order-card bg-white rounded-3xl shadow-sm border border-gray-100 p-8"
+            >
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-blue-900 uppercase">Son Siparişiniz</h3>
+                <RouterLink
+                  to="/orders"
+                  class="text-pink-500 text-sm font-bold hover:underline"
+                  >Tümünü Gör</RouterLink
+                >
+              </div>
+              <div class="flex items-center justify-between bg-gray-50 p-4 rounded-2xl">
+                <div>
+                  <p class="text-xs text-gray-400">Sipariş No</p>
+                  <p class="font-bold text-gray-800">#{{ orderStore.orders[0].id }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400">Tutar</p>
+                  <p class="font-bold text-blue-900">${{ orderStore.orders[0].total }}</p>
+                </div>
+                <div
+                  class="px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-[10px] font-bold uppercase"
+                >
+                  {{ orderStore.orders[0].status }}
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-else
               class="empty-orders-card bg-white rounded-3xl shadow-sm border border-pink-100 p-12 text-center flex flex-col items-center justify-center min-h-[350px]"
             >
               <div
