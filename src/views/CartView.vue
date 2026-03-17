@@ -6,32 +6,26 @@ import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 
-// HARİTA İÇİN IMPORTLAR
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// 2. Store'u başlatıyoruz
 const store = useCartStore();
 
-// Lokasyon State'leri
 const locations = ref([]);
 const searchQuery = ref("");
 const isLocationModalOpen = ref(false);
-const viewMode = ref("list"); // list, grid veya map
+const viewMode = ref("list");
 const selectedLocation = ref(null);
 const isLoading = ref(false);
 
-// Harita referansı
 const map = ref(null);
 const markers = [];
 
-// HESAPLAMA: store.cart kullanarak güncellendi
 const subtotal = computed(() => {
   if (!store.cart || !Array.isArray(store.cart)) return 0;
   return store.cart.reduce((total, item) => total + item.price * item.quantity, 0);
 });
 
-// Haritayı başlatan fonksiyon
 const initMap = async () => {
   await nextTick();
 
@@ -105,7 +99,13 @@ const filteredLocations = computed(() => {
 const handleCompleteOrder = () => {
   if (!selectedLocation.value) return;
   alert(`Siparişiniz alındı! Teslimat: ${selectedLocation.value.name}`);
-  store.clearCart(); // store üzerinden çağrıldı
+
+  if (store.clearCart) {
+    store.clearCart();
+  } else {
+    store.cart = [];
+  }
+
   isLocationModalOpen.value = false;
 };
 </script>
@@ -187,6 +187,7 @@ const handleCompleteOrder = () => {
               </div>
             </div>
           </div>
+
           <div v-if="isLocationModalOpen" class="location-selection-box animate-in">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-bold text-gray-900">Teslimat Noktası Seçin</h2>
@@ -275,7 +276,10 @@ const handleCompleteOrder = () => {
                 @click="fetchLocations"
                 :disabled="isLoading"
               />
-              <CustomButton mode="clear-cart" @click="store.clearCart()" />
+              <CustomButton
+                mode="clear-cart"
+                @click="store.clearCart ? store.clearCart() : (store.cart = [])"
+              />
             </div>
           </div>
         </div>

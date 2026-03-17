@@ -6,7 +6,6 @@ export const useCartStore = defineStore('cart', () => {
   const cart = ref(JSON.parse(localStorage.getItem('my_cart')) || []);
   const favorites = ref(JSON.parse(localStorage.getItem('my_favorites')) || []);
 
-
   const addToCart = (product) => {
     const existingItem = cart.value.find(item => item.id === product.id);
     if (existingItem) {
@@ -21,6 +20,10 @@ export const useCartStore = defineStore('cart', () => {
   };
 
   
+  const clearCart = () => {
+    cart.value = [];
+  };
+
   const toggleFavorite = (product) => {
     const index = favorites.value.findIndex(p => p.id === product.id);
     if (index > -1) {
@@ -34,7 +37,6 @@ export const useCartStore = defineStore('cart', () => {
     return favorites.value.some(p => p.id === productId);
   };
 
-  
   watch(cart, (newCart) => {
     localStorage.setItem('my_cart', JSON.stringify(newCart));
   }, { deep: true });
@@ -48,6 +50,7 @@ export const useCartStore = defineStore('cart', () => {
     favorites, 
     addToCart, 
     removeFromCart, 
+    clearCart, 
     toggleFavorite, 
     isFavorite 
   };
