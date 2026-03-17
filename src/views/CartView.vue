@@ -21,38 +21,57 @@ const isLocationModalOpen = ref(false);
 const viewMode = ref("list");
 const selectedLocation = ref(null);
 const isLoading = ref(false);
-const isOrderSuccess = ref(false); // Pop-up kontrolü için
-
-const map = ref(null);
-const markers = [];
+const isOrderSuccess = ref(false);
+const couponInput = ref("");
 
 const subtotal = computed(() => {
   if (!store.cart || !Array.isArray(store.cart)) return 0;
   return store.cart.reduce((total, item) => total + item.price * item.quantity, 0);
 });
 
-// Siparişi Onayla ve Bitir Fonksiyonu
+const discountAmount = computed(() => {
+  if (!store.appliedCoupon) return 0;
+
+  const couponValue = store.appliedCoupon.value;
+
+  if (couponValue < 1) {
+    return subtotal.value * couponValue;
+  } else {
+    return couponValue;
+  }
+});
+
+const finalTotal = computed(() => {
+  return Math.max(0, subtotal.value - discountAmount.value);
+});
+
+const handleApplyCoupon = () => {
+  if (!couponInput.value) return;
+  const success = store.applyCoupon(couponInput.value.toUpperCase());
+  if (success) {
+    alert("✅ Kupon başarıyla uygulandı!");
+    couponInput.value = "";
+  } else {
+    alert("❌ Geçersiz veya hatalı kupon kodu.");
+  }
+};
+
 const handleOrderConfirmation = () => {
-  // Eğer lokasyon seçilmediyse önce lokasyon seçtir
   if (!selectedLocation.value) {
     fetchLocations();
     return;
   }
 
-  // 1. Siparişi OrderStore'a kaydet
-  orderStore.addOrder(store.cart, subtotal.value);
+  orderStore.addOrder(store.cart, finalTotal.value.toFixed(2));
 
-  // 2. Başarı Pop-up'ını göster
   isOrderSuccess.value = true;
 
-  // 3. Sepeti temizle
   if (store.clearCart) {
     store.clearCart();
   } else {
     store.cart = [];
   }
 
-  // 4. Kısa bir süre sonra yönlendir
   setTimeout(() => {
     isOrderSuccess.value = false;
     isLocationModalOpen.value = false;
@@ -122,6 +141,9 @@ const filteredLocations = computed(() => {
       loc.description.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
+
+const map = ref(null);
+const markers = [];
 </script>
 
 <template>
@@ -155,7 +177,7 @@ const filteredLocations = computed(() => {
         </div>
         <h2 class="text-2xl font-bold text-gray-900 mb-2">Harika!</h2>
         <p class="text-gray-500 mb-6">
-          Siparişiniz başarıyla alındı. Siparişlerim sayfasına yönlendiriliyorsunuz...
+          Siparişiniz indirimle beraber başarıyla alındı. Yönlendiriliyorsunuz...
         </p>
         <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
           <div class="bg-green-500 h-full animate-progress"></div>
@@ -184,9 +206,6 @@ const filteredLocations = computed(() => {
           </svg>
         </div>
         <h2 class="empty-title">Sepetinizde ürün yok</h2>
-        <p class="empty-description">
-          Hemen alışverişe başlayıp harika ürünleri keşfedin.
-        </p>
         <RouterLink to="/Allproducts" class="start-shopping-btn"
           >Alışverişe Başla</RouterLink
         >
@@ -248,7 +267,7 @@ const filteredLocations = computed(() => {
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Konum veya adres ara..."
+                placeholder="Konum ara..."
                 class="search-bar"
               />
               <div class="view-btns">
@@ -258,25 +277,17 @@ const filteredLocations = computed(() => {
                 >
                   Liste
                 </button>
-                <button
-                  @click="viewMode = 'grid'"
-                  :class="{ active: viewMode === 'grid' }"
-                >
-                  Kartlar
-                </button>
                 <button @click="viewMode = 'map'" :class="{ active: viewMode === 'map' }">
                   Harita
                 </button>
               </div>
             </div>
-
             <div
               v-show="viewMode === 'map'"
               id="map-container"
               class="map-container-style"
             ></div>
-
-            <div v-if="viewMode !== 'map'" :class="['locations-wrapper', viewMode]">
+            <div v-if="viewMode !== 'map'" class="locations-wrapper list">
               <div
                 v-for="loc in filteredLocations"
                 :key="loc.id"
@@ -293,50 +304,91 @@ const filteredLocations = computed(() => {
                 <div v-if="selectedLocation?.id === loc.id" class="check-mark">✓</div>
               </div>
             </div>
-
-            <div v-if="selectedLocation" class="selection-footer">
-              <p>
-                Seçilen Mağaza: <strong>{{ selectedLocation.name }}</strong>
-              </p>
-            </div>
           </div>
         </div>
 
         <div class="summary-section">
           <div class="summary-card">
             <h3 class="summary-title">Sipariş Özeti</h3>
-            <div class="summary-details">
-              <div class="summary-row">
-                <span>Ara Toplam</span><span>${{ subtotal }}</span>
+
+            <div class="coupon-section mt-4 mb-6">
+              <div class="flex gap-2">
+                <input
+                  v-model="couponInput"
+                  type="text"
+                  placeholder="Kupon Kodu"
+                  class="flex-1 p-3 border border-gray-200 rounded-xl text-xs outline-none focus:border-pink-300 transition-all uppercase"
+                />
+                <button
+                  @click="handleApplyCoupon"
+                  class="bg-indigo-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-pink-500 transition-all"
+                >
+                  Uygula
+                </button>
               </div>
-              <div class="summary-row">
-                <span>Kargo</span><span class="text-green-600">Bedava</span>
+              <div
+                v-if="store.appliedCoupon"
+                class="mt-3 flex justify-between items-center bg-green-50 border border-green-100 p-2 rounded-lg"
+              >
+                <span
+                  class="text-[10px] text-green-600 font-black uppercase tracking-tighter"
+                  >🎟️ {{ store.appliedCoupon.code }} aktif</span
+                >
+                <button
+                  @click="store.removeCoupon"
+                  class="text-green-400 hover:text-red-500 text-xs font-bold"
+                >
+                  ✕
+                </button>
               </div>
-              <div class="summary-row total">
-                <span>Toplam</span><span>${{ subtotal }}</span>
+            </div>
+
+            <div class="summary-details border-t border-gray-50 pt-4">
+              <div class="summary-row flex justify-between text-sm mb-2">
+                <span class="text-gray-400">Ara Toplam</span>
+                <span class="font-bold text-gray-800">${{ subtotal }}</span>
+              </div>
+
+              <div
+                v-if="discountAmount > 0"
+                class="summary-row flex justify-between text-sm mb-2 text-pink-500"
+              >
+                <span class="font-medium">İndirim</span>
+                <span class="font-black">-${{ discountAmount.toFixed(2) }}</span>
+              </div>
+
+              <div class="summary-row flex justify-between text-sm mb-4">
+                <span class="text-gray-400">Kargo</span>
+                <span class="text-green-600 font-bold">Bedava</span>
+              </div>
+
+              <div
+                class="summary-row total border-t pt-4 flex justify-between items-center"
+              >
+                <span class="font-black text-gray-800 uppercase text-xs">Toplam</span>
+                <span class="text-2xl font-black text-indigo-900"
+                  >${{ finalTotal.toFixed(2) }}</span
+                >
               </div>
             </div>
 
             <div
               v-if="selectedLocation"
-              class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100"
+              class="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 animate-fade-in"
             >
-              <p class="text-[10px] text-blue-400 uppercase font-bold mb-1">
-                Teslimat Noktası
+              <p class="text-[9px] text-blue-400 uppercase font-black mb-1">
+                Seçili Mağaza
               </p>
-              <p class="text-sm font-bold text-blue-900">{{ selectedLocation.name }}</p>
+              <p class="text-xs font-bold text-blue-900">{{ selectedLocation.name }}</p>
             </div>
 
-            <div class="summary-actions">
+            <div class="summary-actions mt-8 space-y-3">
               <CustomButton
                 mode="checkout"
                 @click="handleOrderConfirmation"
                 :disabled="isLoading"
               />
-              <CustomButton
-                mode="clear-cart"
-                @click="store.clearCart ? store.clearCart() : (store.cart = [])"
-              />
+              <CustomButton mode="clear-cart" @click="store.clearCart" />
             </div>
           </div>
         </div>
@@ -347,7 +399,33 @@ const filteredLocations = computed(() => {
 </template>
 
 <style scoped>
-/* Progress bar animasyonu için basit CSS */
+.animate-progress {
+  animation: progress 3s linear forwards;
+}
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+input:focus {
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.1);
+}
+
 .animate-progress {
   animation: progress 3s linear forwards;
 }

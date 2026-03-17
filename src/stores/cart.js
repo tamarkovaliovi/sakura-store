@@ -5,6 +5,9 @@ export const useCartStore = defineStore('cart', () => {
   
   const cart = ref(JSON.parse(localStorage.getItem('my_cart')) || []);
   const favorites = ref(JSON.parse(localStorage.getItem('my_favorites')) || []);
+  
+  
+  const appliedCoupon = ref(JSON.parse(localStorage.getItem('my_coupon')) || null);
 
   const addToCart = (product) => {
     const existingItem = cart.value.find(item => item.id === product.id);
@@ -19,9 +22,32 @@ export const useCartStore = defineStore('cart', () => {
     cart.value = cart.value.filter(item => item.id !== productId);
   };
 
-  
   const clearCart = () => {
     cart.value = [];
+    appliedCoupon.value = null;
+  };
+
+ 
+  const applyCoupon = (couponCode) => {
+   
+    const availableCoupons = {
+      'SAKURA20': 0.20,  
+      'MERHABA10': 10,   
+      'SPRING15': 0.15   
+    };
+
+    if (availableCoupons[couponCode]) {
+      appliedCoupon.value = { 
+        code: couponCode, 
+        value: availableCoupons[couponCode] 
+      };
+      return true;
+    }
+    return false;
+  };
+
+  const removeCoupon = () => {
+    appliedCoupon.value = null;
   };
 
   const toggleFavorite = (product) => {
@@ -37,6 +63,7 @@ export const useCartStore = defineStore('cart', () => {
     return favorites.value.some(p => p.id === productId);
   };
 
+ 
   watch(cart, (newCart) => {
     localStorage.setItem('my_cart', JSON.stringify(newCart));
   }, { deep: true });
@@ -45,12 +72,20 @@ export const useCartStore = defineStore('cart', () => {
     localStorage.setItem('my_favorites', JSON.stringify(newFavs));
   }, { deep: true });
 
+  
+  watch(appliedCoupon, (newCoupon) => {
+    localStorage.setItem('my_coupon', JSON.stringify(newCoupon));
+  }, { deep: true });
+
   return { 
     cart, 
     favorites, 
+    appliedCoupon, 
     addToCart, 
     removeFromCart, 
     clearCart, 
+    applyCoupon,   
+    removeCoupon,  
     toggleFavorite, 
     isFavorite 
   };
