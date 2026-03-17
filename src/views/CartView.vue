@@ -1,50 +1,75 @@
 <script setup>
 import { ref, computed, nextTick, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useCartStore } from "@/stores/cart";
+import { useOrderStore } from "@/stores/orderStore";
 
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 
-// HARİTA İÇİN IMPORTLAR
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// 2. Store'u başlatıyoruz
 const store = useCartStore();
+const orderStore = useOrderStore();
+const router = useRouter();
 
-// Lokasyon State'leri
 const locations = ref([]);
 const searchQuery = ref("");
 const isLocationModalOpen = ref(false);
-const viewMode = ref("list"); // list, grid veya map
+const viewMode = ref("list");
 const selectedLocation = ref(null);
 const isLoading = ref(false);
+const isOrderSuccess = ref(false); // Pop-up kontrolü için
 
-// Harita referansı
 const map = ref(null);
 const markers = [];
 
-// HESAPLAMA: store.cart kullanarak güncellendi
 const subtotal = computed(() => {
   if (!store.cart || !Array.isArray(store.cart)) return 0;
   return store.cart.reduce((total, item) => total + item.price * item.quantity, 0);
 });
 
-// Haritayı başlatan fonksiyon
+// Siparişi Onayla ve Bitir Fonksiyonu
+const handleOrderConfirmation = () => {
+  // Eğer lokasyon seçilmediyse önce lokasyon seçtir
+  if (!selectedLocation.value) {
+    fetchLocations();
+    return;
+  }
+
+  // 1. Siparişi OrderStore'a kaydet
+  orderStore.addOrder(store.cart, subtotal.value);
+
+  // 2. Başarı Pop-up'ını göster
+  isOrderSuccess.value = true;
+
+  // 3. Sepeti temizle
+  if (store.clearCart) {
+    store.clearCart();
+  } else {
+    store.cart = [];
+  }
+
+  // 4. Kısa bir süre sonra yönlendir
+  setTimeout(() => {
+    isOrderSuccess.value = false;
+    isLocationModalOpen.value = false;
+    router.push("/orders");
+  }, 3000);
+};
+
 const initMap = async () => {
   await nextTick();
-
   if (!map.value) {
     map.value = L.map("map-container").setView([39.0, 35.0], 6);
-
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap",
     }).addTo(map.value);
   }
 
   markers.forEach((m) => map.value.removeLayer(m));
-
   filteredLocations.value.forEach((loc) => {
     const lat = loc.latitude || 41 + Math.random() * 0.5;
     const lng = loc.longitude || 28.9 + Math.random() * 0.5;
@@ -56,7 +81,6 @@ const initMap = async () => {
     marker.on("click", () => {
       selectedLocation.value = loc;
     });
-
     markers.push(marker);
   });
 
@@ -77,18 +101,15 @@ const fetchLocations = async () => {
     isLocationModalOpen.value = true;
     return;
   }
-
   isLoading.value = true;
   try {
     const response = await fetch("https://api.escuelajs.co/api/v1/locations");
     if (!response.ok) throw new Error("API isteği başarısız.");
-
     const data = await response.json();
     locations.value = data;
     isLocationModalOpen.value = true;
   } catch (error) {
     console.error("Lokasyonlar yüklenemedi:", error);
-    alert("Mağaza konumları yüklenirken bir hata oluştu.");
   } finally {
     isLoading.value = false;
   }
@@ -101,18 +122,46 @@ const filteredLocations = computed(() => {
       loc.description.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
-
-const handleCompleteOrder = () => {
-  if (!selectedLocation.value) return;
-  alert(`Siparişiniz alındı! Teslimat: ${selectedLocation.value.name}`);
-  store.clearCart(); // store üzerinden çağrıldı
-  isLocationModalOpen.value = false;
-};
 </script>
 
 <template>
-  <div class="page-wrapper">
+  <div class="page-wrapper relative">
     <Header />
+
+    <div
+      v-if="isOrderSuccess"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    >
+      <div
+        class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-300"
+      >
+        <div
+          class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-12 w-12"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Harika!</h2>
+        <p class="text-gray-500 mb-6">
+          Siparişiniz başarıyla alındı. Siparişlerim sayfasına yönlendiriliyorsunuz...
+        </p>
+        <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+          <div class="bg-green-500 h-full animate-progress"></div>
+        </div>
+      </div>
+    </div>
 
     <main class="main-content">
       <h1 class="page-title">Alışveriş Sepetim</h1>
@@ -187,6 +236,7 @@ const handleCompleteOrder = () => {
               </div>
             </div>
           </div>
+
           <div v-if="isLocationModalOpen" class="location-selection-box animate-in">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-bold text-gray-900">Teslimat Noktası Seçin</h2>
@@ -248,9 +298,6 @@ const handleCompleteOrder = () => {
               <p>
                 Seçilen Mağaza: <strong>{{ selectedLocation.name }}</strong>
               </p>
-              <button @click="handleCompleteOrder" class="final-submit-btn">
-                Siparişi Tamamla
-              </button>
             </div>
           </div>
         </div>
@@ -269,13 +316,27 @@ const handleCompleteOrder = () => {
                 <span>Toplam</span><span>${{ subtotal }}</span>
               </div>
             </div>
+
+            <div
+              v-if="selectedLocation"
+              class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100"
+            >
+              <p class="text-[10px] text-blue-400 uppercase font-bold mb-1">
+                Teslimat Noktası
+              </p>
+              <p class="text-sm font-bold text-blue-900">{{ selectedLocation.name }}</p>
+            </div>
+
             <div class="summary-actions">
               <CustomButton
                 mode="checkout"
-                @click="fetchLocations"
+                @click="handleOrderConfirmation"
                 :disabled="isLoading"
               />
-              <CustomButton mode="clear-cart" @click="store.clearCart()" />
+              <CustomButton
+                mode="clear-cart"
+                @click="store.clearCart ? store.clearCart() : (store.cart = [])"
+              />
             </div>
           </div>
         </div>
@@ -286,6 +347,19 @@ const handleCompleteOrder = () => {
 </template>
 
 <style scoped>
+/* Progress bar animasyonu için basit CSS */
+.animate-progress {
+  animation: progress 3s linear forwards;
+}
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 .page-wrapper {
   @apply min-h-screen bg-gray-50 flex flex-col;
 }
