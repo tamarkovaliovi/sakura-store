@@ -86,7 +86,7 @@
         <div
           v-for="order in orderStore.orders"
           :key="order.id"
-          class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow animate-slide-up"
+          class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
         >
           <div
             class="bg-gray-50/50 px-6 py-4 flex flex-wrap justify-between items-center border-b border-gray-100"
@@ -115,8 +115,8 @@
               class="px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider"
               :class="
                 order.statusType === 'status-pending'
-                  ? 'status-badge-pending'
-                  : 'status-badge-success'
+                  ? 'bg-amber-100 text-amber-600'
+                  : 'bg-emerald-100 text-emerald-600'
               "
             >
               {{ order.status }}
@@ -130,9 +130,7 @@
               class="flex justify-between items-center py-3 border-b border-dashed border-gray-100 last:border-0"
             >
               <div class="flex items-center gap-3">
-                <div
-                  class="w-2.5 h-2.5 rounded-full bg-pink-400 shadow-sm shadow-pink-200"
-                ></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-pink-400"></div>
                 <span class="text-gray-700 font-medium">{{ item.name }}</span>
                 <span class="text-gray-400 text-xs font-bold">x{{ item.quantity }}</span>
               </div>
@@ -176,6 +174,7 @@
   <div
     v-if="selectedOrder"
     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+    @click.self="selectedOrder = null"
   >
     <div
       class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up"
@@ -184,7 +183,7 @@
         <h3 class="text-xl font-bold uppercase tracking-tighter">Sipariş Detayı</h3>
         <button
           @click="selectedOrder = null"
-          class="text-white/80 hover:text-white text-2xl transition-colors"
+          class="text-white/80 hover:text-white text-2xl"
         >
           ✕
         </button>
@@ -210,13 +209,13 @@
           >
             <div class="flex flex-col">
               <router-link
-                :to="`/products/${item.id}`"
-                class="text-indigo-900 font-bold text-sm hover:text-pink-600 transition-colors flex items-center gap-2"
+                :to="{ name: 'ProductDetails', params: { id: item.id } }"
+                class="text-indigo-900 font-bold text-sm hover:text-pink-600 transition-colors flex items-center gap-2 group/link"
               >
                 {{ item.name }}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                  class="h-3 w-3 opacity-0 group-hover/link:opacity-100 transition-opacity"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -274,21 +273,17 @@ const orderStore = useOrderStore();
 const selectedOrder = ref(null);
 
 const openOrderDetails = (order) => {
-  selectedOrder.value = order;
+  selectedOrder.value = { ...order }; // Reaktivite kaybını önlemek için kopya alıyoruz
 };
 
 const totalSpending = computed(() => {
   return orderStore.orders
-    .reduce((sum, order) => sum + Number(order.total), 0)
+    .reduce((sum, order) => sum + Number(order.total || 0), 0)
     .toFixed(2);
 });
 
 const clearHistory = () => {
-  if (
-    confirm(
-      "Tüm sipariş geçmişinizi silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
-    )
-  ) {
+  if (confirm("Tüm sipariş geçmişinizi silmek istediğinize emin misiniz?")) {
     orderStore.orders = [];
     localStorage.removeItem("sakura_orders");
   }
