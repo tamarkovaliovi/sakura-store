@@ -6,6 +6,7 @@ import localBanner from "@/components/pictures/home.jpg";
 import tukendiImage from "@/components/pictures/tukendi.jpg";
 import CustomButton from "@/components/CustomButton.vue";
 
+import apiClient from "@/services/axios";
 import { useCartStore } from "@/stores/cart";
 
 const store = useCartStore();
@@ -13,8 +14,6 @@ const store = useCartStore();
 const homeImage = localBanner;
 const products = ref([]);
 const loading = ref(true);
-
-const API_BASE_URL = "https://api.escuelajs.co";
 
 const scrollToProducts = () => {
   const element = document.getElementById("products-section");
@@ -25,10 +24,8 @@ const scrollToProducts = () => {
 
 const fetchProducts = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/products?offset=0&limit=20`);
-    if (!response.ok) throw new Error("Veri çekilemedi");
-    const data = await response.json();
-    products.value = data;
+    const response = await apiClient.get("/products?offset=0&limit=20");
+    products.value = response.data;
   } catch (error) {
     console.error("Ürünler yüklenirken hata oluştu:", error);
   } finally {
@@ -52,7 +49,6 @@ onMounted(() => {
   fetchProducts();
 });
 </script>
-
 <template>
   <div class="page-wrapper">
     <Header />

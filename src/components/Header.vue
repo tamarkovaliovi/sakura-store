@@ -6,25 +6,23 @@ import CustomButoon from "./CustomButton.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
-
-const isLoggedIn = computed(() => !!authStore.user);
 const router = useRouter();
 const route = useRoute();
 const store = useCartStore();
 
-const searchQuery = ref("");
+const isLoggedIn = computed(() => !!authStore.user);
+const userName = computed(() => authStore.user?.name || "Kullanıcı");
+const userRole = computed(() => authStore.user?.role);
 
-const userName = ref("");
+const searchQuery = ref("");
 const isMobileMenuOpen = ref(false);
 
-onMounted(() => {
+onMounted(async () => {
   const token = localStorage.getItem("user_token");
-  const name = localStorage.getItem("user_name");
-
-  if (token && name) {
-    isLoggedIn.value = true;
-    userName.value = name;
+  if (token && !authStore.user) {
+    await authStore.fetchUser();
   }
+
   if (route.query.search) {
     searchQuery.value = route.query.search;
   }
@@ -58,6 +56,11 @@ const handleSearch = () => {
   });
 };
 
+const handleLogout = () => {
+  authStore.logout();
+  router.push("/login");
+};
+
 watch(
   () => route.query.search,
   (newSearch) => {
@@ -69,7 +72,6 @@ watch(searchQuery, (newVal) => {
   if (newVal === "") handleSearch();
 });
 </script>
-
 <template>
   <header class="bg-white shadow-md sticky top-0 z-[100]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
