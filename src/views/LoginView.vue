@@ -37,7 +37,6 @@ const handleLogin = async () => {
     if (data.access_token) {
       localStorage.setItem("user_token", data.access_token);
 
-      // Profil isteği için de mutlak URL kullanıldı
       const profileResponse = await fetch(`${API_BASE_URL}/api/v1/auth/profile`, {
         headers: { Authorization: `Bearer ${data.access_token}` },
       });
@@ -49,8 +48,6 @@ const handleLogin = async () => {
         localStorage.setItem("user_avatar", profileData.avatar);
         localStorage.setItem("user_role", profileData.role);
         localStorage.setItem("user_id", profileData.id);
-
-        // Uygulamayı ana sayfaya yönlendiriyoruz
         window.location.href = "/";
       }
     }
