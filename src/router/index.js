@@ -38,7 +38,13 @@ const routes = [
     component: EditProductView,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
-  { path: '/kategoriler', name: 'Categories', component: CategoriesView }
+  { path: '/kategoriler', name: 'Categories', component: CategoriesView },
+ 
+{
+  path: '/product/:id',
+  name: 'ProductDetails', 
+  component: () => import('../views/ProductDetailsView.vue')
+}
 ];
 
 const router = createRouter({
