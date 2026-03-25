@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import CustomButton from "@/components/CustomButton.vue";
+import apiClient from "@/services/axios";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -12,32 +13,20 @@ const password = ref("");
 const loading = ref(false);
 const errorMsg = ref("");
 
-const API_BASE_URL = "https://api.escuelajs.co";
-
 const handleLogin = async () => {
   loading.value = true;
   errorMsg.value = "";
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: email.value,
-        password: password.value,
-      }),
+    const response = await apiClient.post("/auth/login", {
+      email: email.value,
+      password: password.value,
     });
 
-    const data = await response.json();
+    const { access_token } = response.data;
 
-    if (!response.ok) {
-      errorMsg.value = data.message || "Giriş bilgileri hatalı!";
-      return;
-    }
-
-    if (data.access_token) {
-      localStorage.setItem("user_token", data.access_token);
-
+    if (access_token) {
+      localStorage.setItem("user_token", access_token);
       await authStore.fetchUser();
 
       if (authStore.user) {
@@ -46,7 +35,9 @@ const handleLogin = async () => {
     }
   } catch (error) {
     console.error("Hata:", error);
-    errorMsg.value = "Sunucu hatası!";
+    errorMsg.value =
+      error.response?.data?.message ||
+      "Giriş bilgileri hatalı veya sunucuya ulaşılamıyor!";
   } finally {
     loading.value = false;
   }

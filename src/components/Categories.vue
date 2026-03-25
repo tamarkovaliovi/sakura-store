@@ -115,14 +115,16 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios";
+
+import apiClient from "@/services/axios";
 import AppHeader from "../components/Header.vue";
 import AppFooter from "../components/AppFooter.vue";
 
 const categories = ref([]);
 const isEditing = ref(false);
 const showModal = ref(false);
-const apiUrl = "https://api.escuelajs.co/api/v1/categories";
+
+const endpoint = "/categories";
 
 const categoryForm = ref({ id: null, name: "", image: "" });
 
@@ -133,42 +135,40 @@ const openAddModal = () => {
 
 const formatCategoryImage = (url) => {
   if (!url) return "https://placehold.co/600x400?text=Resim+Yok";
-
   let cleaned = Array.isArray(url) ? url[0] : url;
   cleaned = String(cleaned)
     .replace(/[\[\]"]/g, "")
     .replace(/["]/g, "")
     .trim();
 
-  // KRİTİK DÜZELTME: Çalışmayan placeimg.com linklerini engelle
   if (cleaned.includes("placeimg.com") || !cleaned.startsWith("http")) {
     return `https://placehold.co/600x400?text=Sakura+Category`;
   }
-
   return cleaned;
 };
 
 const fetchCategories = async () => {
   try {
-    const response = await axios.get(apiUrl);
+    const response = await apiClient.get(endpoint);
     categories.value = response.data.filter(
       (c) => c.name && !["string", "new category", "test"].includes(c.name.toLowerCase())
     );
   } catch (error) {
-    console.error("Hata:", error);
+    console.error("Kategoriler yüklenirken hata:", error);
   }
 };
 
 const createCategory = async () => {
   try {
-    await axios.post(apiUrl, {
+    await apiClient.post(endpoint, {
       name: categoryForm.value.name,
       image: categoryForm.value.image,
     });
     fetchCategories();
     resetForm();
+    showModal.value = false;
   } catch (error) {
-    alert("Ekleme başarısız.");
+    alert("Ekleme başarısız. Yetkiniz olmayabilir.");
   }
 };
 
@@ -185,18 +185,17 @@ const prepareEdit = (category) => {
 const resetForm = () => {
   categoryForm.value = { id: null, name: "", image: "" };
   isEditing.value = false;
-  showModal.value = true; // Modal kapanması için false olmalı
-  showModal.value = false;
 };
 
 const updateCategory = async () => {
   try {
-    await axios.put(`${apiUrl}/${categoryForm.value.id}`, {
+    await apiClient.put(`${endpoint}/${categoryForm.value.id}`, {
       name: categoryForm.value.name,
       image: categoryForm.value.image,
     });
     fetchCategories();
     resetForm();
+    showModal.value = false;
   } catch (error) {
     alert("Güncelleme başarısız.");
   }
@@ -205,10 +204,10 @@ const updateCategory = async () => {
 const deleteCategory = async (id) => {
   if (confirm("Silmek istediğinize emin misiniz?")) {
     try {
-      await axios.delete(`${apiUrl}/${id}`);
+      await apiClient.delete(`${endpoint}/${id}`);
       fetchCategories();
     } catch (error) {
-      alert("Bu kategori silinemez (bağlı ürünler olabilir).");
+      alert("Bu kategori silinemez (bağlı ürünler olabilir veya yetkiniz yok).");
     }
   }
 };
