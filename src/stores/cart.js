@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import Swal from 'sweetalert2';
 
 export const useCartStore = defineStore('cart', () => {
   
@@ -9,14 +10,36 @@ export const useCartStore = defineStore('cart', () => {
   
   const appliedCoupon = ref(JSON.parse(localStorage.getItem('my_coupon')) || null);
 
-  const addToCart = (product) => {
-    const existingItem = cart.value.find(item => item.id === product.id);
-    if (existingItem) {
-      existingItem.quantity++;
-    } else {
-      cart.value.push({ ...product, quantity: 1 });
+
+const addToCart = (product) => {
+  const existingItem = cart.value.find(item => item.id === product.id);
+  
+  if (existingItem) {
+    existingItem.quantity++;
+  } else {
+    cart.value.push({ ...product, quantity: 1 });
+  }
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+    background: '#fff5f7', 
+    color: '#d63384',      
+    iconColor: '#ffb7c5',  
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
     }
-  };
+  });
+
+  Toast.fire({
+    icon: 'success',
+    title: 'Added to Cart!',
+    text: `${product.title} has been added.`
+  });
+};
 
   const removeFromCart = (productId) => {
     cart.value = cart.value.filter(item => item.id !== productId);
