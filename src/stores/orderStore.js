@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 
 export const useOrderStore = defineStore('orderStore', {
   state: () => ({
-    // LocalStorage'dan siparişleri yükle
+  
     orders: JSON.parse(localStorage.getItem('sakura_orders') || '[]'),
   }),
   
@@ -17,19 +17,19 @@ export const useOrderStore = defineStore('orderStore', {
      */
     addOrder(cartItems, totalPrice) {
       const newOrder = {
-        // Benzersiz sipariş numarası
+       
         id: Math.floor(100000 + Math.random() * 900000).toString(),
         
-        // Sipariş tarihi (Daha temiz bir görünüm için)
+        
         date: new Date().toLocaleDateString('tr-TR', {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric'
         }),
         
-        // Ürün verilerini eşleştirme
-        // ÖNEMLİ: Görselde isim görünmediği için item.title'ın doğruluğundan emin oluyoruz
+        
         items: cartItems.map(item => ({
+          id: item.id,
           name: item.title || item.name || 'Bilinmeyen Ürün', 
           quantity: item.quantity,
           price: item.price
@@ -40,10 +40,10 @@ export const useOrderStore = defineStore('orderStore', {
         statusType: 'status-pending'
       };
 
-      // Yeni siparişi listenin en başına ekle
+    
       this.orders.unshift(newOrder);
       
-      // Kaydet
+      
       this.saveToLocalStorage();
     },
 

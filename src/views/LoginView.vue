@@ -1,15 +1,17 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 import CustomButton from "@/components/CustomButton.vue";
 
 const router = useRouter();
+const authStore = useAuthStore();
+
 const email = ref("");
 const password = ref("");
 const loading = ref(false);
 const errorMsg = ref("");
 
-// Render ve canlı ortam uyumluluğu için Base URL
 const API_BASE_URL = "https://api.escuelajs.co";
 
 const handleLogin = async () => {
@@ -17,7 +19,6 @@ const handleLogin = async () => {
   errorMsg.value = "";
 
   try {
-    // URL mutlak yol ve HTTPS olarak güncellendi
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -37,26 +38,15 @@ const handleLogin = async () => {
     if (data.access_token) {
       localStorage.setItem("user_token", data.access_token);
 
-      // Profil isteği için de mutlak URL kullanıldı
-      const profileResponse = await fetch(`${API_BASE_URL}/api/v1/auth/profile`, {
-        headers: { Authorization: `Bearer ${data.access_token}` },
-      });
+      await authStore.fetchUser();
 
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-
-        localStorage.setItem("user_name", profileData.name);
-        localStorage.setItem("user_avatar", profileData.avatar);
-        localStorage.setItem("user_role", profileData.role);
-        localStorage.setItem("user_id", profileData.id);
-
-        // Uygulamayı ana sayfaya yönlendiriyoruz
-        window.location.href = "/";
+      if (authStore.user) {
+        router.push("/");
       }
     }
   } catch (error) {
     console.error("Hata:", error);
-    errorMsg.value = "Sunucu hatası! Bağlantınızı kontrol edin.";
+    errorMsg.value = "Sunucu hatası!";
   } finally {
     loading.value = false;
   }
@@ -67,7 +57,7 @@ const handleLogin = async () => {
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <h2 class="brand-title">SakuraStore</h2>
+        <h2 class="brand-title"></h2>
         <p class="brand-subtitle">Hesabınıza giriş yapın</p>
       </div>
 
@@ -99,6 +89,12 @@ const handleLogin = async () => {
             {{ loading ? "Giriş Yapılıyor..." : "Giriş Yap" }}
           </CustomButton>
         </div>
+
+        <div class="guest-action">
+          <button type="button" @click="router.push('/')" class="guest-button">
+            Üye Olmadan Devam Et
+          </button>
+        </div>
       </form>
 
       <div class="footer-link">
@@ -113,19 +109,27 @@ const handleLogin = async () => {
 
 <style scoped>
 .login-container {
-  @apply min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8;
+  @apply min-h-screen flex items-center justify-center bg-pink-50 py-12 px-4 sm:px-6 lg:px-8;
 }
 
 .login-card {
-  @apply max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100;
+  @apply max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-pink-100;
 }
 
 .brand-title {
-  @apply text-3xl font-extrabold text-blue-900;
+  @apply text-3xl font-extrabold text-center;
+}
+.brand-title::before {
+  content: "Sakura";
+  @apply text-orange-500;
+}
+.brand-title::after {
+  content: "Store";
+  @apply text-blue-900;
 }
 
 .brand-subtitle {
-  @apply mt-2 text-sm text-gray-500;
+  @apply mt-2 text-sm text-gray-500 text-center;
 }
 
 .error-banner {
@@ -149,11 +153,19 @@ const handleLogin = async () => {
 }
 
 .form-input {
-  @apply appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-900 focus:border-blue-900 sm:text-sm;
+  @apply appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500 sm:text-sm;
 }
 
 .submit-button {
-  @apply w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-900 hover:bg-blue-800 transition-all;
+  @apply w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 transition-all;
+}
+
+.guest-action {
+  @apply text-center mt-2;
+}
+
+.guest-button {
+  @apply text-sm text-gray-400 hover:text-pink-600 transition-colors underline decoration-dotted;
 }
 
 .footer-link {
@@ -161,6 +173,6 @@ const handleLogin = async () => {
 }
 
 .link-text {
-  @apply font-medium text-blue-900 hover:text-blue-700 underline;
+  @apply font-medium text-pink-600 hover:text-pink-800 underline;
 }
 </style>
