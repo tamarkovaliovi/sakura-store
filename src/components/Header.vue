@@ -3,13 +3,17 @@ import { ref, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useCartStore } from "@/stores/cart";
 import CustomButoon from "./CustomButton.vue";
+import { useAuthStore } from "@/stores/auth";
 
+const authStore = useAuthStore();
+
+const isLoggedIn = computed(() => !!authStore.user);
 const router = useRouter();
 const route = useRoute();
 const store = useCartStore();
 
 const searchQuery = ref("");
-const isLoggedIn = ref(false);
+
 const userName = ref("");
 const isMobileMenuOpen = ref(false);
 
