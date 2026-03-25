@@ -131,7 +131,12 @@
             >
               <div class="flex items-center gap-3">
                 <div class="w-2.5 h-2.5 rounded-full bg-pink-400"></div>
-                <span class="text-gray-700 font-medium">{{ item.name }}</span>
+                <span
+                  @click="goToProduct(item.id)"
+                  class="text-gray-700 font-medium cursor-pointer hover:text-pink-600 transition-colors"
+                >
+                  {{ item.title }}
+                </span>
                 <span class="text-gray-400 text-xs font-bold">x{{ item.quantity }}</span>
               </div>
               <span class="font-bold text-gray-900">${{ item.price }}</span>
@@ -212,7 +217,7 @@
                 :to="{ name: 'ProductDetails', params: { id: item.id } }"
                 class="text-indigo-900 font-bold text-sm hover:text-pink-600 transition-colors flex items-center gap-2 group/link"
               >
-                {{ item.name }}
+                {{ item.title }}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   class="h-3 w-3 opacity-0 group-hover/link:opacity-100 transition-opacity"
@@ -265,15 +270,23 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 import { useOrderStore } from "@/stores/orderStore";
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 
 const orderStore = useOrderStore();
+const router = useRouter();
 const selectedOrder = ref(null);
 
 const openOrderDetails = (order) => {
-  selectedOrder.value = { ...order }; // Reaktivite kaybını önlemek için kopya alıyoruz
+  selectedOrder.value = { ...order };
+};
+
+const goToProduct = (productId) => {
+  if (productId) {
+    router.push({ name: "ProductDetails", params: { id: productId } });
+  }
 };
 
 const totalSpending = computed(() => {
@@ -291,12 +304,10 @@ const clearHistory = () => {
 </script>
 
 <style scoped>
-.font-sans {
-  font-family: "Inter", sans-serif;
-}
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out;
+  animation: fadeIn 0.5s ease-out;
 }
+
 .animate-slide-up {
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -309,9 +320,10 @@ const clearHistory = () => {
     opacity: 1;
   }
 }
+
 @keyframes slideUp {
   from {
-    transform: translateY(30px);
+    transform: translateY(20px);
     opacity: 0;
   }
   to {
@@ -320,30 +332,14 @@ const clearHistory = () => {
   }
 }
 
-.status-badge-pending {
-  background-color: #fffaf0;
-  color: #dd6b20;
-  font-size: 10px;
-  font-weight: 800;
-}
-.status-badge-success {
-  background-color: #f0fff4;
-  color: #38a169;
-  font-size: 10px;
-  font-weight: 800;
-}
-
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f1f1f1;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #e2e8f0;
   border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e0;
 }
 </style>
