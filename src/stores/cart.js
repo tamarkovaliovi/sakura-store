@@ -43,7 +43,7 @@ export const useCartStore = defineStore('cart', () => {
       toast: true,
       position: 'top-end',
       showConfirmButton: false,
-      timer: 2000,
+      timer: 400,
       timerProgressBar: true,
       background: '#fff5f7', 
       color: '#d63384',      
