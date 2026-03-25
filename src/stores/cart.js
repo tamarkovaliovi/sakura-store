@@ -1,45 +1,65 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import Swal from 'sweetalert2';
+import { useAuthStore } from './auth';
+import router from '@/router';
 
 export const useCartStore = defineStore('cart', () => {
   
   const cart = ref(JSON.parse(localStorage.getItem('my_cart')) || []);
   const favorites = ref(JSON.parse(localStorage.getItem('my_favorites')) || []);
-  
-  
   const appliedCoupon = ref(JSON.parse(localStorage.getItem('my_coupon')) || null);
 
+  const addToCart = (product) => {
+    const authStore = useAuthStore(); 
 
-const addToCart = (product) => {
-  const existingItem = cart.value.find(item => item.id === product.id);
-  
-  if (existingItem) {
-    existingItem.quantity++;
-  } else {
-    cart.value.push({ ...product, quantity: 1 });
-  }
-  const Toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000,
-    timerProgressBar: true,
-    background: '#fff5f7', 
-    color: '#d63384',      
-    iconColor: '#ffb7c5',  
-    didOpen: (toast) => {
-      toast.onmouseenter = Swal.stopTimer;
-      toast.onmouseleave = Swal.resumeTimer;
+    if (!authStore.user) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Login Required',
+        text: 'You must be logged in to add items to your SakuraStore cart!',
+        confirmButtonColor: '#d63384', 
+        confirmButtonText: 'Go to Login',
+        showCancelButton: true,
+        cancelButtonText: 'Later'
+      }).then((result) => {
+        if (result.isConfirmed) {
+
+          router.push('/login');
+        }
+      });
+      return;
     }
-  });
 
-  Toast.fire({
-    icon: 'success',
-    title: 'Added to Cart!',
-    text: `${product.title} has been added.`
-  });
-};
+    const existingItem = cart.value.find(item => item.id === product.id);
+    
+    if (existingItem) {
+      existingItem.quantity++;
+    } else {
+      cart.value.push({ ...product, quantity: 1 });
+    }
+
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true,
+      background: '#fff5f7', 
+      color: '#d63384',      
+      iconColor: '#ffb7c5',  
+      didOpen: (toast) => {
+        toast.onmouseenter = Swal.stopTimer;
+        toast.onmouseleave = Swal.resumeTimer;
+      }
+    });
+
+    Toast.fire({
+      icon: 'success',
+      title: 'Added to Cart!',
+      text: `${product.title} has been added.`
+    });
+  };
 
   const removeFromCart = (productId) => {
     cart.value = cart.value.filter(item => item.id !== productId);
@@ -50,9 +70,7 @@ const addToCart = (product) => {
     appliedCoupon.value = null;
   };
 
- 
   const applyCoupon = (couponCode) => {
-   
     const availableCoupons = {
       'SAKURA20': 0.20,  
       'MERHABA10': 10,   
@@ -86,7 +104,6 @@ const addToCart = (product) => {
     return favorites.value.some(p => p.id === productId);
   };
 
- 
   watch(cart, (newCart) => {
     localStorage.setItem('my_cart', JSON.stringify(newCart));
   }, { deep: true });
@@ -95,7 +112,6 @@ const addToCart = (product) => {
     localStorage.setItem('my_favorites', JSON.stringify(newFavs));
   }, { deep: true });
 
-  
   watch(appliedCoupon, (newCoupon) => {
     localStorage.setItem('my_coupon', JSON.stringify(newCoupon));
   }, { deep: true });

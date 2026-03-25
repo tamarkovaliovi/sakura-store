@@ -65,7 +65,7 @@ const handleRegister = async () => {
   <div class="register-container">
     <div class="register-card">
       <div class="register-header">
-        <h2 class="brand-title">Hesap Oluştur</h2>
+        <h2 class="brand-title"></h2>
         <p class="brand-subtitle">SakuraStore dünyasına ilk adımı atın</p>
       </div>
 
@@ -128,42 +128,61 @@ const handleRegister = async () => {
   </div>
 </template>
 
+<
 <style scoped>
-/* Mevcut Tailwind tasarımların korunmuştur */
 .register-container {
-  @apply min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8;
+  @apply min-h-screen flex items-center justify-center bg-pink-50 py-12 px-4 sm:px-6 lg:px-8;
 }
+
 .register-card {
-  @apply max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100;
+  @apply max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-pink-100;
 }
+
 .brand-title {
-  @apply text-3xl font-extrabold text-blue-900 text-center;
+  @apply text-3xl font-extrabold text-center;
 }
+.brand-title::before {
+  content: "Sakura";
+  @apply text-orange-500;
+}
+.brand-title::after {
+  content: "Store";
+  @apply text-blue-900;
+}
+
 .brand-subtitle {
   @apply mt-2 text-sm text-gray-500 text-center;
 }
+
 .error-banner {
   @apply flex items-center bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded;
 }
+
 .error-icon {
   @apply mr-2;
 }
+
 .error-text {
   @apply text-sm text-red-700 font-medium;
 }
+
 .register-form {
   @apply mt-8 space-y-6;
 }
+
 .form-input {
-  @apply appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-900 focus:border-blue-900 sm:text-sm transition-all;
+  @apply appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500 sm:text-sm transition-all;
 }
+
 .submit-button {
-  @apply w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-900 hover:bg-blue-800 focus:outline-none transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed;
+  @apply w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 focus:outline-none transition-colors shadow-md;
 }
+
 .footer-link {
   @apply text-center mt-4 border-t pt-4 text-sm text-gray-600;
 }
+
 .link-text {
-  @apply font-medium text-blue-900 hover:text-blue-700 underline underline-offset-4;
+  @apply font-medium text-pink-600 hover:text-pink-800 underline underline-offset-4;
 }
 </style>
