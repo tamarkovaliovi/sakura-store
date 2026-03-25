@@ -9,6 +9,8 @@ import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 import tukendiImage from "@/components/pictures/tukendi.jpg";
 
+import apiClient from "@/services/axios";
+
 const store = useCartStore();
 
 const products = ref([]);
@@ -46,35 +48,35 @@ const fetchCategories = async () => {
     console.error("Kategoriler yüklenirken hata oluştu:", error);
   }
 };
-
 const fetchProducts = async () => {
   loading.value = true;
   const offset = (currentPage.value - 1) * limit;
-  let url = "";
+
+  let endpoint = "";
 
   if (selectedCategory.value !== null && !route.query.search) {
-    url = `${API_BASE_URL}/api/v1/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
+    endpoint = `/categories/${selectedCategory.value}/products?offset=${offset}&limit=${limit}`;
   } else {
-    url = `${API_BASE_URL}/api/v1/products?offset=${offset}&limit=${limit}`;
+    endpoint = `/products?offset=${offset}&limit=${limit}`;
 
     if (route.query.search) {
-      url += `&title=${route.query.search}`;
+      endpoint += `&title=${route.query.search}`;
     }
 
     if (selectedCategory.value !== null) {
-      url += `&categoryId=${selectedCategory.value}`;
+      endpoint += `&categoryId=${selectedCategory.value}`;
     }
   }
 
   if (minPrice.value !== "" || maxPrice.value !== "") {
     const min = minPrice.value || 0;
     const max = maxPrice.value || 999999;
-    url += `&price_min=${min}&price_max=${max}`;
+    endpoint += `&price_min=${min}&price_max=${max}`;
   }
 
   try {
-    const response = await fetch(url);
-    const data = await response.json();
+    const response = await apiClient.get(endpoint);
+    const data = response.data;
     products.value = data;
 
     if (data.length === 0 && currentPage.value > 1) {
