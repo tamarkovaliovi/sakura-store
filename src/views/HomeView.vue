@@ -24,6 +24,7 @@ const scrollToProducts = () => {
 
 const fetchProducts = async () => {
   try {
+    // 20 adet ürünü çekiyoruz
     const response = await apiClient.get("/products?offset=0&limit=20");
     products.value = response.data;
   } catch (error) {
@@ -33,14 +34,23 @@ const fetchProducts = async () => {
   }
 };
 
+// GÜNCELLENDİ: Diğer sayfalarla aynı güvenli görsel mantığı
 const formatImage = (imgUrl) => {
-  if (!imgUrl) return tukendiImage;
+  if (!imgUrl || (Array.isArray(imgUrl) && imgUrl.length === 0)) return tukendiImage;
+
   let url = Array.isArray(imgUrl) ? imgUrl[0] : imgUrl;
   let cleaned = String(url)
     .replace(/[\[\]"]/g, "")
     .trim();
-  if (!cleaned || !cleaned.startsWith("http")) {
-    return "https://placehold.co/600x600?text=Gorsel+Yok";
+
+  // Bozuk veya kapanmış servis kontrolü (placeimg gibi)
+  const isInvalid =
+    cleaned.includes("placeimg.com") ||
+    cleaned.includes("any") ||
+    !cleaned.startsWith("http");
+
+  if (isInvalid) {
+    return tukendiImage;
   }
   return cleaned;
 };
@@ -49,6 +59,7 @@ onMounted(() => {
   fetchProducts();
 });
 </script>
+
 <template>
   <div class="page-wrapper">
     <Header />
@@ -124,15 +135,12 @@ onMounted(() => {
                 :src="formatImage(product.images)"
                 :alt="product.title"
                 class="card-image w-full h-full object-cover group-hover:scale-105 transition-transform"
-                @error="
-                  (e) =>
-                    (e.target.src = 'https://placehold.co/400x400?text=Resim+Bulunamadi')
-                "
+                @error="(e) => (e.target.src = tukendiImage)"
               />
             </div>
           </router-link>
 
-          <div class="card-body p-4">
+          <div class="card-body p-4 text-center">
             <span
               class="category-tag text-xs font-medium text-pink-500 uppercase tracking-wider"
             >
@@ -145,9 +153,9 @@ onMounted(() => {
               </h3>
             </router-link>
 
-            <span class="product-price block mt-2 text-lg font-bold text-gray-900"
-              >{{ product.price }}$</span
-            >
+            <span class="product-price block mt-2 text-lg font-bold text-gray-900">
+              ${{ product.price }}
+            </span>
 
             <div class="card-footer mt-4">
               <div class="flex justify-center">

@@ -3,6 +3,7 @@ import { ref, computed, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useCartStore } from "@/stores/cart";
 import { useOrderStore } from "@/stores/orderStore";
+import Swal from "sweetalert2";
 
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
@@ -11,84 +12,124 @@ import CustomButton from "@/components/CustomButton.vue";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+// --- Store & Router ---
 const store = useCartStore();
 const orderStore = useOrderStore();
 const router = useRouter();
 
+// --- State ---
 const locations = ref([]);
 const searchQuery = ref("");
 const isLocationModalOpen = ref(false);
 const viewMode = ref("list");
 const selectedLocation = ref(null);
 const isLoading = ref(false);
-const isOrderSuccess = ref(false);
 const couponInput = ref("");
+const map = ref(null);
+let markers = [];
 
+// --- Hızlı Toast Yapılandırması (Donmaz ve Akıcı) ---
+const Toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 2000,
+  timerProgressBar: true,
+  background: "#fff5f7",
+  color: "#d63384",
+  iconColor: "#ffb7c5",
+  didOpen: (toast) => {
+    toast.addEventListener("mouseenter", Swal.stopTimer);
+    toast.addEventListener("mouseleave", Swal.resumeTimer);
+  },
+});
+
+// --- Computed Properties ---
 const subtotal = computed(() => {
   if (!store.cart || !Array.isArray(store.cart)) return 0;
-  return store.cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  return store.cart.reduce((total, item) => total + item.price * (item.quantity || 1), 0);
 });
 
 const discountAmount = computed(() => {
   if (!store.appliedCoupon) return 0;
-
   const couponValue = store.appliedCoupon.value;
-
-  if (couponValue < 1) {
-    return subtotal.value * couponValue;
-  } else {
-    return couponValue;
-  }
+  return couponValue < 1 ? subtotal.value * couponValue : couponValue;
 });
 
 const finalTotal = computed(() => {
   return Math.max(0, subtotal.value - discountAmount.value);
 });
 
+const filteredLocations = computed(() => {
+  return locations.value.filter(
+    (loc) =>
+      loc.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      loc.description.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
+// --- Methods ---
 const handleApplyCoupon = () => {
   if (!couponInput.value) return;
   const success = store.applyCoupon(couponInput.value.toUpperCase());
   if (success) {
-    alert("✅ Kupon başarıyla uygulandı!");
+    Toast.fire({ icon: "success", title: "Kupon Uygulandı!" });
     couponInput.value = "";
   } else {
-    alert("❌ Geçersiz veya hatalı kupon kodu.");
+    Toast.fire({ icon: "error", title: "Geçersiz Kupon!" });
   }
 };
 
 const handleOrderConfirmation = () => {
   if (!selectedLocation.value) {
+    Toast.fire({ icon: "warning", title: "Lütfen Adres Seçin!" });
     fetchLocations();
     return;
   }
 
+  // Siparişi kaydet
   orderStore.addOrder(store.cart, finalTotal.value.toFixed(2));
 
-  isOrderSuccess.value = true;
+  // Akıcı Bildirim ve Yönlendirme
+  Toast.fire({
+    icon: "success",
+    title: "Siparişiniz Alındı!",
+    text: "Siparişlerim sayfasına aktarılıyorsunuz...",
+  });
 
-  if (store.clearCart) {
+  // Sepeti temizle
+  if (typeof store.clearCart === "function") {
     store.clearCart();
   } else {
     store.cart = [];
   }
 
+  // Bekletmeden hızlıca yönlendir
   setTimeout(() => {
-    isOrderSuccess.value = false;
     isLocationModalOpen.value = false;
     router.push("/orders");
-  }, 3000);
+  }, 2200);
 };
 
 const initMap = async () => {
   await nextTick();
+  const mapContainer = document.getElementById("map-container");
+  if (!mapContainer) return;
+
   if (!map.value) {
     map.value = L.map("map-container").setView([39.0, 35.0], 6);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap",
     }).addTo(map.value);
+  } else {
+    setTimeout(() => {
+      map.value.invalidateSize();
+    }, 100);
   }
 
   markers.forEach((m) => map.value.removeLayer(m));
+  markers = [];
+
   filteredLocations.value.forEach((loc) => {
     const lat = loc.latitude || 41 + Math.random() * 0.5;
     const lng = loc.longitude || 28.9 + Math.random() * 0.5;
@@ -109,12 +150,6 @@ const initMap = async () => {
   }
 };
 
-watch(viewMode, (newMode) => {
-  if (newMode === "map") {
-    initMap();
-  }
-});
-
 const fetchLocations = async () => {
   if (locations.value.length > 0) {
     isLocationModalOpen.value = true;
@@ -123,76 +158,37 @@ const fetchLocations = async () => {
   isLoading.value = true;
   try {
     const response = await fetch("https://api.escuelajs.co/api/v1/locations");
-    if (!response.ok) throw new Error("API isteği başarısız.");
+    if (!response.ok) throw new Error("API hatası");
     const data = await response.json();
     locations.value = data;
     isLocationModalOpen.value = true;
   } catch (error) {
-    console.error("Lokasyonlar yüklenemedi:", error);
+    isLocationModalOpen.value = true;
   } finally {
     isLoading.value = false;
   }
 };
 
-const filteredLocations = computed(() => {
-  return locations.value.filter(
-    (loc) =>
-      loc.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      loc.description.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+watch(viewMode, (newMode) => {
+  if (newMode === "map") initMap();
 });
-
-const map = ref(null);
-const markers = [];
 </script>
 
 <template>
   <div class="page-wrapper relative">
     <Header />
 
-    <div
-      v-if="isOrderSuccess"
-      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-    >
+    <main class="max-w-7xl mx-auto px-4 py-10">
+      <h1 class="text-3xl font-black text-gray-900 mb-8">Alışveriş Sepetim</h1>
+
       <div
-        class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-300"
+        v-if="!store.cart || store.cart.length === 0"
+        class="text-center py-20 bg-gray-50 rounded-3xl"
       >
-        <div
-          class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
-        >
+        <div class="mb-6 flex justify-center text-gray-300">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-12 w-12"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-        </div>
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">Harika!</h2>
-        <p class="text-gray-500 mb-6">
-          Siparişiniz indirimle beraber başarıyla alındı. Yönlendiriliyorsunuz...
-        </p>
-        <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
-          <div class="bg-green-500 h-full animate-progress"></div>
-        </div>
-      </div>
-    </div>
-
-    <main class="main-content">
-      <h1 class="page-title">Alışveriş Sepetim</h1>
-
-      <div v-if="!store.cart || store.cart.length === 0" class="empty-cart-container">
-        <div class="empty-icon-wrapper">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="empty-icon"
+            class="h-20 w-20"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -205,79 +201,78 @@ const markers = [];
             />
           </svg>
         </div>
-        <h2 class="empty-title">Sepetinizde ürün yok</h2>
-        <RouterLink to="/Allproducts" class="start-shopping-btn"
-          >Alışverişe Başla</RouterLink
+        <h2 class="text-xl font-bold text-gray-500 mb-6">Sepetiniz şu an boş.</h2>
+        <RouterLink
+          to="/Allproducts"
+          class="bg-pink-500 text-white px-8 py-3 rounded-full font-bold hover:bg-pink-600 transition"
         >
+          Alışverişe Başla
+        </RouterLink>
       </div>
 
-      <div v-else class="cart-layout">
-        <div class="cart-items-section">
-          <div v-for="item in store.cart" :key="item.id" class="cart-item-card">
+      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div class="lg:col-span-2 space-y-4">
+          <div
+            v-for="item in store.cart"
+            :key="item.id"
+            class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100"
+          >
             <img
-              :src="
-                item.images && item.images[0]
-                  ? item.images[0]
-                  : 'https://placehold.co/100x100?text=No+Image'
-              "
-              class="item-image"
-              alt="Product"
+              :src="item.images?.[0] || 'https://placehold.co/100x100'"
+              class="w-24 h-24 object-cover rounded-xl"
             />
-            <div class="item-details">
-              <div class="item-header">
-                <div>
-                  <h3 class="item-title">{{ item.title }}</h3>
-                  <p class="item-category">{{ item.category?.name || "Genel" }}</p>
-                </div>
-                <p class="item-price">${{ item.price }}</p>
+            <div class="flex-1">
+              <div class="flex justify-between items-start">
+                <h3 class="font-bold text-gray-900">{{ item.title }}</h3>
+                <p class="font-black text-indigo-900">${{ item.price }}</p>
               </div>
-              <div class="item-controls">
-                <div class="quantity-wrapper">
-                  <CustomButton
-                    mode="decrease-quantity"
-                    :item="item"
+              <p class="text-xs text-gray-400 mb-4">{{ item.category?.name }}</p>
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3 bg-gray-50 p-1 rounded-lg">
+                  <button
                     @click="
                       item.quantity > 1 ? item.quantity-- : store.removeFromCart(item.id)
                     "
-                  />
-                  <span class="quantity-text">{{ item.quantity }}</span>
-                  <CustomButton
-                    mode="increase-quantity"
-                    :item="item"
-                    @click="item.quantity++"
-                  />
+                    class="px-2 font-bold text-gray-500"
+                  >
+                    -
+                  </button>
+                  <span class="text-sm font-bold">{{ item.quantity }}</span>
+                  <button @click="item.quantity++" class="px-2 font-bold text-gray-500">
+                    +
+                  </button>
                 </div>
-                <CustomButton
-                  mode="remove-itemfrom-cart"
-                  :item="item"
+                <button
                   @click="store.removeFromCart(item.id)"
-                />
+                  class="text-red-400 text-xs font-bold hover:text-red-600"
+                >
+                  Kaldır
+                </button>
               </div>
             </div>
           </div>
 
-          <div v-if="isLocationModalOpen" class="location-selection-box animate-in">
-            <div class="flex justify-between items-center mb-6">
-              <h2 class="text-xl font-bold text-gray-900">Teslimat Noktası Seçin</h2>
-              <button @click="isLocationModalOpen = false" class="close-btn">
-                &times;
-              </button>
-            </div>
-            <div class="controls-row">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Konum ara..."
-                class="search-bar"
-              />
-              <div class="view-btns">
+          <div
+            v-if="isLocationModalOpen"
+            class="bg-white p-6 rounded-3xl shadow-lg border border-pink-100"
+          >
+            <div class="flex justify-between mb-4">
+              <h2 class="font-bold">Teslimat Noktası Seç</h2>
+              <div class="flex gap-2">
                 <button
                   @click="viewMode = 'list'"
-                  :class="{ active: viewMode === 'list' }"
+                  :class="
+                    viewMode === 'list' ? 'text-pink-500 font-bold' : 'text-gray-400'
+                  "
                 >
                   Liste
                 </button>
-                <button @click="viewMode = 'map'" :class="{ active: viewMode === 'map' }">
+                <button
+                  @click="viewMode = 'map'"
+                  :class="
+                    viewMode === 'map' ? 'text-pink-500 font-bold' : 'text-gray-400'
+                  "
+                >
                   Harita
                 </button>
               </div>
@@ -285,111 +280,77 @@ const markers = [];
             <div
               v-show="viewMode === 'map'"
               id="map-container"
-              class="map-container-style"
+              class="h-64 rounded-2xl mb-4 bg-gray-100"
             ></div>
-            <div v-if="viewMode !== 'map'" class="locations-wrapper list">
+            <div v-if="viewMode === 'list'" class="max-h-60 overflow-y-auto space-y-2">
               <div
                 v-for="loc in filteredLocations"
                 :key="loc.id"
                 @click="selectedLocation = loc"
                 :class="[
-                  'location-item',
-                  { 'is-selected': selectedLocation?.id === loc.id },
+                  'p-3 rounded-xl border cursor-pointer transition',
+                  selectedLocation?.id === loc.id
+                    ? 'bg-pink-50 border-pink-200'
+                    : 'bg-gray-50 border-transparent',
                 ]"
               >
-                <div class="loc-info">
-                  <span class="loc-name">{{ loc.name }}</span>
-                  <span class="loc-address">{{ loc.description }}</span>
-                </div>
-                <div v-if="selectedLocation?.id === loc.id" class="check-mark">✓</div>
+                <p class="text-sm font-bold">{{ loc.name }}</p>
+                <p class="text-[10px] text-gray-400">{{ loc.description }}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="summary-section">
-          <div class="summary-card">
-            <h3 class="summary-title">Sipariş Özeti</h3>
-
-            <div class="coupon-section mt-4 mb-6">
-              <div class="flex gap-2">
-                <input
-                  v-model="couponInput"
-                  type="text"
-                  placeholder="Kupon Kodu"
-                  class="flex-1 p-3 border border-gray-200 rounded-xl text-xs outline-none focus:border-pink-300 transition-all uppercase"
-                />
-                <button
-                  @click="handleApplyCoupon"
-                  class="bg-indigo-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-pink-500 transition-all"
-                >
-                  Uygula
-                </button>
-              </div>
-              <div
-                v-if="store.appliedCoupon"
-                class="mt-3 flex justify-between items-center bg-green-50 border border-green-100 p-2 rounded-lg"
-              >
-                <span
-                  class="text-[10px] text-green-600 font-black uppercase tracking-tighter"
-                  >🎟️ {{ store.appliedCoupon.code }} aktif</span
-                >
-                <button
-                  @click="store.removeCoupon"
-                  class="text-green-400 hover:text-red-500 text-xs font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div class="summary-details border-t border-gray-50 pt-4">
-              <div class="summary-row flex justify-between text-sm mb-2">
-                <span class="text-gray-400">Ara Toplam</span>
-                <span class="font-bold text-gray-800">${{ subtotal }}</span>
-              </div>
-
-              <div
-                v-if="discountAmount > 0"
-                class="summary-row flex justify-between text-sm mb-2 text-pink-500"
-              >
-                <span class="font-medium">İndirim</span>
-                <span class="font-black">-${{ discountAmount.toFixed(2) }}</span>
-              </div>
-
-              <div class="summary-row flex justify-between text-sm mb-4">
-                <span class="text-gray-400">Kargo</span>
-                <span class="text-green-600 font-bold">Bedava</span>
-              </div>
-
-              <div
-                class="summary-row total border-t pt-4 flex justify-between items-center"
-              >
-                <span class="font-black text-gray-800 uppercase text-xs">Toplam</span>
-                <span class="text-2xl font-black text-indigo-900"
-                  >${{ finalTotal.toFixed(2) }}</span
-                >
-              </div>
-            </div>
-
-            <div
-              v-if="selectedLocation"
-              class="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 animate-fade-in"
-            >
-              <p class="text-[9px] text-blue-400 uppercase font-black mb-1">
-                Seçili Mağaza
-              </p>
-              <p class="text-xs font-bold text-blue-900">{{ selectedLocation.name }}</p>
-            </div>
-
-            <div class="summary-actions mt-8 space-y-3">
-              <CustomButton
-                mode="checkout"
-                @click="handleOrderConfirmation"
-                :disabled="isLoading"
+        <div class="lg:col-span-1">
+          <div
+            class="bg-white p-6 rounded-3xl shadow-xl sticky top-24 border border-gray-50"
+          >
+            <h3 class="text-xl font-black mb-6">Sipariş Özeti</h3>
+            <div class="flex gap-2 mb-6">
+              <input
+                v-model="couponInput"
+                type="text"
+                placeholder="Kupon Kodu"
+                class="flex-1 p-3 bg-gray-50 rounded-xl text-sm outline-none border focus:border-pink-300"
               />
-              <CustomButton mode="clear-cart" @click="store.clearCart" />
+              <button
+                @click="handleApplyCoupon"
+                class="bg-indigo-900 text-white px-4 rounded-xl text-xs font-bold"
+              >
+                Uygula
+              </button>
             </div>
+            <div class="space-y-3 mb-6">
+              <div class="flex justify-between text-gray-500">
+                <span>Ara Toplam</span
+                ><span class="font-bold text-gray-900">${{ subtotal }}</span>
+              </div>
+              <div v-if="discountAmount > 0" class="flex justify-between text-pink-500">
+                <span>İndirim</span
+                ><span class="font-black">-${{ discountAmount.toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between text-gray-500">
+                <span>Kargo</span><span class="text-green-600 font-bold">Bedava</span>
+              </div>
+            </div>
+            <div class="border-t pt-6 mb-8 flex justify-between items-center">
+              <span class="font-bold text-gray-400">TOPLAM</span>
+              <span class="text-3xl font-black text-indigo-900"
+                >${{ finalTotal.toFixed(2) }}</span
+              >
+            </div>
+            <CustomButton
+              mode="checkout"
+              @click="handleOrderConfirmation"
+              :disabled="isLoading"
+              class="w-full mb-3"
+            />
+            <button
+              @click="store.clearCart"
+              class="w-full text-gray-400 text-xs font-bold hover:text-red-500 transition"
+            >
+              Sepeti Temizle
+            </button>
           </div>
         </div>
       </div>
@@ -399,6 +360,10 @@ const markers = [];
 </template>
 
 <style scoped>
+#map-container {
+  z-index: 1;
+}
+
 .animate-progress {
   animation: progress 3s linear forwards;
 }

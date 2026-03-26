@@ -1,30 +1,38 @@
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import Swal from 'sweetalert2';
 import { useAuthStore } from './auth';
 import router from '@/router';
 
 export const useCartStore = defineStore('cart', () => {
   
+  // --- State ---
   const cart = ref(JSON.parse(localStorage.getItem('my_cart')) || []);
   const favorites = ref(JSON.parse(localStorage.getItem('my_favorites')) || []);
   const appliedCoupon = ref(JSON.parse(localStorage.getItem('my_coupon')) || null);
 
+  // --- Getters ---
+  const cartTotal = computed(() => {
+    return cart.value.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2);
+  });
+
+  // --- Actions ---
+
   const addToCart = (product) => {
     const authStore = useAuthStore(); 
 
+    // Giriş kontrolü
     if (!authStore.user) {
       Swal.fire({
         icon: 'warning',
-        title: 'Login Required',
-        text: 'You must be logged in to add items to your SakuraStore cart!',
+        title: 'Giriş Yapmalısınız',
+        text: 'Sepete ürün eklemek için SakuraStore hesabınıza giriş yapın!',
         confirmButtonColor: '#d63384', 
-        confirmButtonText: 'Go to Login',
+        confirmButtonText: 'Giriş Yap',
         showCancelButton: true,
-        cancelButtonText: 'Later'
+        cancelButtonText: 'Daha Sonra'
       }).then((result) => {
         if (result.isConfirmed) {
-
           router.push('/login');
         }
       });
@@ -36,28 +44,33 @@ export const useCartStore = defineStore('cart', () => {
     if (existingItem) {
       existingItem.quantity++;
     } else {
-      cart.value.push({ ...product, quantity: 1 });
+      // DÜZELTME: 'images' dizisini koruyoruz ki CartView'da hata almayalım
+      cart.value.push({ 
+        id: product.id,
+        title: product.title || product.name,
+        price: product.price,
+        // Eğer product.images varsa onu, yoksa tekli image'ı diziye çevirip koyuyoruz
+        images: product.images || [product.image], 
+        category: product.category, // Kategori bilgisini de ekleyelim
+        quantity: 1 
+      });
     }
 
+    // Bildirim (Toast)
     const Toast = Swal.mixin({
       toast: true,
       position: 'top-end',
       showConfirmButton: false,
-      timer: 400,
+      timer: 1000,
       timerProgressBar: true,
       background: '#fff5f7', 
       color: '#d63384',      
       iconColor: '#ffb7c5',  
-      didOpen: (toast) => {
-        toast.onmouseenter = Swal.stopTimer;
-        toast.onmouseleave = Swal.resumeTimer;
-      }
     });
 
     Toast.fire({
       icon: 'success',
-      title: 'Added to Cart!',
-      text: `${product.title} has been added.`
+      title: 'Sepete Eklendi!',
     });
   };
 
@@ -68,19 +81,23 @@ export const useCartStore = defineStore('cart', () => {
   const clearCart = () => {
     cart.value = [];
     appliedCoupon.value = null;
+    localStorage.removeItem('my_cart');
+    localStorage.removeItem('my_coupon');
   };
 
   const applyCoupon = (couponCode) => {
     const availableCoupons = {
-      'SAKURA20': 0.20,  
-      'MERHABA10': 10,   
-      'SPRING15': 0.15   
+      'SAKURA20': 0.20,  // %20 indirim
+      'MERHABA10': 10,   // 10 birim indirim
+      'SPRING15': 0.15   // %15 indirim
     };
 
-    if (availableCoupons[couponCode]) {
+    const discountValue = availableCoupons[couponCode];
+
+    if (discountValue !== undefined) {
       appliedCoupon.value = { 
         code: couponCode, 
-        value: availableCoupons[couponCode] 
+        value: discountValue 
       };
       return true;
     }
@@ -104,6 +121,7 @@ export const useCartStore = defineStore('cart', () => {
     return favorites.value.some(p => p.id === productId);
   };
 
+  // --- Watchers ---
   watch(cart, (newCart) => {
     localStorage.setItem('my_cart', JSON.stringify(newCart));
   }, { deep: true });
@@ -120,6 +138,7 @@ export const useCartStore = defineStore('cart', () => {
     cart, 
     favorites, 
     appliedCoupon, 
+    cartTotal,
     addToCart, 
     removeFromCart, 
     clearCart, 

@@ -126,41 +126,44 @@ const fetchProducts = async () => {
   loading.value = true;
   products.value = [];
 
-  // Render/Production ortamı için API ana adresi
   const API_BASE_URL = "https://api.escuelajs.co";
 
   try {
     let url = "";
-
-    // Header bileşeni ile tam uyum için hem 'search' hem de 'q' kontrol ediliyor
     const queryTerm = route.query.search || route.query.q;
 
     if (queryTerm) {
       isSearching.value = true;
       searchKeyword.value = queryTerm;
-      // Mutlak URL ve HTTPS kullanıldı
       url = `${API_BASE_URL}/api/v1/products/?title=${encodeURIComponent(queryTerm)}`;
     } else {
       isSearching.value = false;
-      // Mutlak URL ve HTTPS kullanıldı
       url = `${API_BASE_URL}/api/v1/products/?categoryId=1&offset=0&limit=40`;
     }
 
-    const response = await fetch(url);
+    const token = localStorage.getItem("user_token");
 
-    // Yanıtın başarılı olup olmadığını kontrol ediyoruz
-    if (!response.ok) throw new Error("Ürünler yüklenirken bir hata oluştu.");
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.warn("Yetkisiz erişim: Token geçersiz veya süresi dolmuş.");
+      }
+      throw new Error(`Ürünler yüklenirken bir hata oluştu. Statü: ${response.status}`);
+    }
 
     const data = await response.json();
 
-    if (Array.isArray(data)) {
-      products.value = data;
-    } else {
-      products.value = [];
-    }
+    products.value = Array.isArray(data) ? data : [];
   } catch (error) {
     console.error("Fetch hatası:", error);
-    products.value = []; // Hata durumunda ürün listesini temiz tut
+    products.value = [];
   } finally {
     loading.value = false;
   }
@@ -169,7 +172,6 @@ const fetchProducts = async () => {
 const clearSearch = () => {
   router.push("/products");
 };
-
 const formatImage = (imgurl) => {
   if (!imgurl) return tukendiImage;
   let cleaned = imgurl.replace(/["\[\]]/g, "");
@@ -186,7 +188,7 @@ const formatImage = (imgurl) => {
 };
 
 watch(
-  () => route.query.q,
+  () => [route.query.q, route.query.search],
   () => {
     fetchProducts();
   }

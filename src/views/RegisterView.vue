@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import apiClient from "@/services/axios"; // Axios instance'ı ekledik
 import CustomButton from "@/components/CustomButton.vue";
 
 const router = useRouter();
@@ -10,51 +11,46 @@ const password = ref("");
 const loading = ref(false);
 const errorMsg = ref("");
 
-// Render ve canlı ortam için HTTPS tabanlı ana URL
-const API_BASE_URL = "https://api.escuelajs.co";
-
 const handleRegister = async () => {
+  // Basit boşluk kontrolü
+  if (!name.value.trim() || !email.value.trim() || !password.value.trim()) {
+    errorMsg.value = "Lütfen tüm alanları eksiksiz doldurun.";
+    return;
+  }
+
   loading.value = true;
   errorMsg.value = "";
 
-  // Kullanıcı ismiyle dinamik avatar oluşturma
+  // Dinamik avatar linki
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
     name.value
   )}&background=0D47A1&color=fff`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.value,
-        email: email.value,
-        password: password.value,
-        avatar: defaultAvatar,
-        role: "customer", // Platzi API'nin beklediği zorunlu alan
-      }),
+    // DÜZELTME: fetch yerine apiClient (Axios) kullanarak daha temiz bir yapı kurduk
+    const response = await apiClient.post("/users/", {
+      name: name.value,
+      email: email.value,
+      password: password.value,
+      avatar: defaultAvatar,
+      role: "customer",
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      // API'den gelen hata mesajlarını (örneğin: "email must be an email") kullanıcıya gösteriyoruz
-      if (data.message) {
-        errorMsg.value = Array.isArray(data.message)
-          ? data.message.join(", ")
-          : data.message;
-      } else {
-        errorMsg.value =
-          "Kayıt sırasında bir hata oluştu. Lütfen bilgilerinizi kontrol edin.";
-      }
-      return;
-    }
-
+    // Axios başarılıysa direkt veriyi döner (response.ok kontrolüne gerek kalmaz)
     alert("✅ Kayıt Başarılı! Şimdi giriş yapabilirsiniz.");
     router.push("/login");
   } catch (error) {
-    console.error("Bağlantı Hatası:", error);
-    errorMsg.value = "Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.";
+    console.error("Kayıt Hatası:", error);
+
+    // Axios hata mesajını yakalama
+    if (error.response && error.response.data) {
+      const data = error.response.data;
+      errorMsg.value = Array.isArray(data.message)
+        ? data.message.join(", ")
+        : data.message || "Kayıt sırasında bir hata oluştu.";
+    } else {
+      errorMsg.value = "Sunucuya bağlanılamadı. Lütfen internetinizi kontrol edin.";
+    }
   } finally {
     loading.value = false;
   }
@@ -130,59 +126,96 @@ const handleRegister = async () => {
 
 <
 <style scoped>
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Konteynır: Arka planı Login ile aynı */
 .register-container {
-  @apply min-h-screen flex items-center justify-center bg-pink-50 py-12 px-4 sm:px-6 lg:px-8;
+  @apply min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans;
 }
 
+/* Kart */
 .register-card {
-  @apply max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-pink-100;
+  @apply max-w-md w-full space-y-8 bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 border border-gray-100;
+  animation: fadeInUp 0.6s ease-out;
 }
 
+/* --- LOGO STİLİ (FOTOĞRAFA GÖRE GÜNCELLENDİ) --- */
 .brand-title {
-  @apply text-3xl font-extrabold text-center;
+  /* tracking-tighter ve font-black ile harfleri fotoğraftaki gibi sıkılaştırdık */
+  @apply text-4xl font-black text-center tracking-tighter;
 }
+
 .brand-title::before {
   content: "Sakura";
-  @apply text-orange-500;
+  /* Fotoğraftaki koyu mavi/indigo tonu */
+  @apply text-indigo-900;
 }
+
 .brand-title::after {
   content: "Store";
-  @apply text-blue-900;
+  /* Fotoğraftaki canlı pembe tonu */
+  @apply text-pink-500;
 }
+/* ---------------------------------------------- */
 
 .brand-subtitle {
-  @apply mt-2 text-sm text-gray-500 text-center;
+  @apply mt-2 text-sm text-gray-400 text-center font-medium italic;
 }
 
+/* Hata Mesajı Alanı */
 .error-banner {
-  @apply flex items-center bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded;
+  @apply flex items-center bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-2xl;
 }
 
 .error-icon {
-  @apply mr-2;
+  @apply mr-3 text-lg;
 }
 
 .error-text {
-  @apply text-sm text-red-700 font-medium;
+  @apply text-[10px] text-red-700 font-black uppercase tracking-wider;
 }
 
+/* Form Tasarımı */
 .register-form {
   @apply mt-8 space-y-6;
 }
 
+.input-group {
+  @apply space-y-4;
+}
+
 .form-input {
-  @apply appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-pink-500 focus:border-pink-500 sm:text-sm transition-all;
+  @apply appearance-none rounded-2xl relative block w-full px-5 py-4 border border-transparent bg-gray-50 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-4 focus:ring-pink-50 focus:border-pink-300 focus:bg-white sm:text-sm transition-all font-bold;
 }
 
+.form-input:focus {
+  transform: scale(1.02);
+}
+
+/* Buton Stili */
 .submit-button {
-  @apply w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 focus:outline-none transition-colors shadow-md;
+  @apply w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-indigo-950 hover:bg-pink-500 shadow-xl shadow-indigo-100/50 transition-all uppercase tracking-widest active:scale-95 disabled:opacity-50;
 }
 
+/* Alt Bağlantılar */
 .footer-link {
-  @apply text-center mt-4 border-t pt-4 text-sm text-gray-600;
+  @apply text-center mt-8 border-t border-gray-50 pt-6 text-sm text-gray-500 font-medium;
 }
 
 .link-text {
-  @apply font-medium text-pink-600 hover:text-pink-800 underline underline-offset-4;
+  @apply font-black text-pink-500 hover:text-pink-700 underline underline-offset-8 uppercase text-xs ml-1 transition-colors;
+}
+
+.input-label {
+  @apply text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 mb-2 block;
 }
 </style>

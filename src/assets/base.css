@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* SakuraStore Global İyileştirmeler */
+@layer base {
+    html {
+        /* Sayfa geçişlerinde veya scrollTo fonksiyonlarında yumuşak kayma sağlar */
+        scroll-behavior: smooth;
+    }
+
+    body {
+        /* Varsayılan arka plan rengi ve font pürüzsüzlüğü */
+        @apply bg-gray-50 text-gray-900 antialiased;
+        font-family: 'Inter', sans-serif;
+        /* Eğer Inter kullanıyorsan */
+    }
+
+    /* Tarayıcıların varsayılan mavi focus halkasını SakuraStore pembesiyle değiştirir */
+    :focus-visible {
+        @apply outline-none ring-2 ring-pink-500 ring-offset-2;
+    }
+}
+
+/* Custom Scrollbar (İsteğe bağlı: Sepet ve Modallar için pembe şık bir kaydırma çubuğu) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-pink-200 rounded-full hover:bg-pink-400 transition-colors;
+}

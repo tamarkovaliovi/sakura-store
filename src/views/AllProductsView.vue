@@ -1,18 +1,18 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-
 import { useCartStore } from "@/stores/cart";
 
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
+// Resmin import edildiğinden emin oluyoruz
 import tukendiImage from "@/components/pictures/tukendi.jpg";
 
+// DÜZELTME: Mutlaka kendi hazırladığın apiClient'ı kullanmalısın
 import apiClient from "@/services/axios";
 
 const store = useCartStore();
-
 const products = ref([]);
 const categories = ref([]);
 const loading = ref(true);
@@ -26,7 +26,7 @@ const minPrice = ref("");
 const maxPrice = ref("");
 const isDropdownOpen = ref(false);
 
-const API_BASE_URL = "https://api.escuelajs.co";
+// --- Methods ---
 
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value;
@@ -37,17 +37,19 @@ const selectCategory = (id) => {
   isDropdownOpen.value = false;
 };
 
+// DÜZELTME: fetch yerine apiClient kullanıldı (Token artık burada da var)
 const fetchCategories = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/categories`);
-    const data = await response.json();
-    categories.value = data.filter(
+    const response = await apiClient.get("/categories");
+    // Axios'ta veri response.data içindedir
+    categories.value = response.data.filter(
       (c) => c.name && !["string", "test", "new"].includes(c.name.toLowerCase())
     );
   } catch (error) {
     console.error("Kategoriler yüklenirken hata oluştu:", error);
   }
 };
+
 const fetchProducts = async () => {
   loading.value = true;
   const offset = (currentPage.value - 1) * limit;
@@ -76,28 +78,35 @@ const fetchProducts = async () => {
 
   try {
     const response = await apiClient.get(endpoint);
-    const data = response.data;
-    products.value = data;
+    products.value = response.data;
 
-    if (data.length === 0 && currentPage.value > 1) {
+    if (response.data.length === 0 && currentPage.value > 1) {
       currentPage.value--;
       await fetchProducts();
     }
   } catch (error) {
-    console.error("Hata:", error);
+    console.error("Ürünler çekilirken hata oluştu:", error);
   } finally {
     loading.value = false;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
 
-watch(
-  () => route.query.search,
-  () => {
-    currentPage.value = 1;
-    fetchProducts();
+const deleteProduct = async (id) => {
+  if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
+
+  try {
+    const response = await apiClient.delete(`/products/${id}`);
+
+    if (response.status === 200 || response.status === 204) {
+      products.value = products.value.filter((p) => p.id !== id);
+      alert("Ürün başarıyla silindi.");
+    }
+  } catch (error) {
+    console.error("Silme hatası:", error);
+    alert("Bu ürünü silme yetkiniz olmayabilir (Admin girişi yapın).");
   }
-);
+};
 
 const filterByCategory = (id) => {
   selectedCategory.value = id;
@@ -124,33 +133,37 @@ const goToAddProduct = () => {
   router.push("/edit-product");
 };
 
-const deleteProduct = async (id) => {
-  if (!confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/products/${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      products.value = products.value.filter((p) => p.id !== id);
-      alert("Ürün başarıyla silindi.");
-    }
-  } catch (error) {
-    console.error("Silme hatası:", error);
-  }
-};
-
+// Görsel formatlama ve hata kontrolü (GÜNCELLENDİ)
 const formatImage = (imgurl) => {
-  if (!imgurl) return tukendiImage;
+  if (!imgurl || (Array.isArray(imgurl) && imgurl.length === 0)) return tukendiImage;
+
   let cleaned = Array.isArray(imgurl) ? imgurl[0] : imgurl;
   cleaned = String(cleaned)
     .replace(/["\[\]]/g, "")
     .trim();
-  if (cleaned.includes("placeimg.com") || !cleaned.startsWith("http")) {
-    return "https://placehold.co/600x600?text=Sakura+Store";
+
+  // Kapanmış servis (placeimg) veya hatalı URL kontrolü
+  const isInvalid =
+    cleaned.includes("placeimg.com") ||
+    cleaned.includes("any") ||
+    !cleaned.startsWith("http");
+
+  if (isInvalid) {
+    return tukendiImage;
   }
   return cleaned;
 };
 
+// --- Watchers ---
+watch(
+  () => route.query.search,
+  () => {
+    currentPage.value = 1;
+    fetchProducts();
+  }
+);
+
+// --- Lifecycle ---
 onMounted(() => {
   fetchProducts();
   fetchCategories();
@@ -330,6 +343,7 @@ onMounted(() => {
             <img
               :src="formatImage(product.images)"
               :alt="product.title"
+              @error="(e) => (e.target.src = tukendiImage)"
               class="card-image w-full h-full object-cover"
             />
 
