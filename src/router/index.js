@@ -17,8 +17,6 @@ const routes = [
   { path: '/Allproducts', name: 'Allproducts', component: AllProductsView },
   { path: '/login', name: 'login', component: LoginView },
   { path: '/register', name: 'register', component: RegisterView },
-
-
   { 
     path: '/profile', 
     name: 'profile', 
@@ -31,20 +29,22 @@ const routes = [
     component: OrdersView, 
     meta: { requiresAuth: true } 
   },
-  
   { path: '/cart', name: 'cart', component: CartView },
   { path: '/favorites', name: 'favorites', component: FavoritesView },
   { path: '/products/:id', name: 'product-details', component: ProductDetailsView },
-  
-
   { 
     path: '/edit-product/:id?', 
     name: 'EditProduct', 
     component: EditProductView,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
-  
-  { path: '/kategoriler', name: 'Categories', component: CategoriesView }
+  { path: '/kategoriler', name: 'Categories', component: CategoriesView },
+ 
+{
+  path: '/product/:id',
+  name: 'ProductDetails', 
+  component: () => import('../views/ProductDetailsView.vue')
+}
 ];
 
 const router = createRouter({
@@ -56,18 +56,21 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
   const token = localStorage.getItem("user_token");
-
-
   if (to.meta.requiresAuth && !token) {
     return next({ name: 'login' });
   }
   if (token && !authStore.user) {
-    await authStore.fetchUser();
+    try {
+      await authStore.fetchUser();
+    } catch (error) {
+      localStorage.removeItem("user_token");
+      return next({ name: 'login' });
+    }
   }
+
   if (to.meta.requiresAdmin) {
-   
     if (authStore.user?.role !== 'admin') {
-      alert("Bu sayfaya sadece moderatörler girebilir!");
+      alert("Bu işlem için Moderatör yetkisi gereklidir!");
       return next({ name: 'home' }); 
     }
   }
