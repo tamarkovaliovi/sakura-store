@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-
 import { useCartStore } from "@/stores/cart";
+import apiClient from "@/services/axios"; // Axios eklendi
 
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
@@ -10,55 +10,57 @@ import CustomButton from "@/components/CustomButton.vue";
 import tukendiImage from "@/components/pictures/tukendi.jpg";
 
 const store = useCartStore();
-
 const route = useRoute();
+
 const product = ref(null);
 const relatedProducts = ref([]);
 const loading = ref(true);
 
-const API_BASE_URL = "https://api.escuelajs.co";
+// --- Methods ---
 
 const formatImage = (imgData) => {
-  if (!imgData) return "https://placehold.co/600x600?text=Resim+Yok";
+  if (!imgData || (Array.isArray(imgData) && imgData.length === 0)) return tukendiImage;
 
   let url = Array.isArray(imgData) ? imgData[0] : imgData;
-
   let cleaned = String(url)
     .replace(/[\[\]"]/g, "")
     .trim();
 
-  if (cleaned.includes("placeimg.com") || !cleaned.startsWith("http")) {
-    return "https://placehold.co/600x600?text=Sakura+Store";
-  }
+  // Kapanmış servis (placeimg) veya hatalı URL kontrolü
+  const isInvalid =
+    cleaned.includes("placeimg.com") ||
+    cleaned.includes("any") ||
+    !cleaned.startsWith("http");
 
-  return cleaned;
+  return isInvalid ? tukendiImage : cleaned;
 };
 
 const fetchData = async (productId) => {
   loading.value = true;
   try {
-    const productResponse = await fetch(`${API_BASE_URL}/api/v1/products/${productId}`);
-    if (!productResponse.ok) throw new Error("Ürün bulunamadı");
+    // Ürün detaylarını çek (apiClient ile Token otomatik eklenir)
+    const productResponse = await apiClient.get(`/products/${productId}`);
+    product.value = productResponse.data;
 
-    const productData = await productResponse.json();
-    product.value = productData;
-
-    const relatedResponse = await fetch(
-      `${API_BASE_URL}/api/v1/categories/${productData.category.id}/products?limit=4`
+    // Benzer ürünleri aynı kategori üzerinden çek
+    const relatedResponse = await apiClient.get(
+      `/categories/${product.value.category.id}/products?limit=4`
     );
-    const relatedData = await relatedResponse.json();
 
-    relatedProducts.value = relatedData
-      .filter((item) => item.id !== productData.id)
+    relatedProducts.value = relatedResponse.data
+      .filter((item) => item.id !== product.value.id)
       .slice(0, 3);
   } catch (error) {
     console.error("Veri çekme hatası:", error);
     product.value = null;
   } finally {
     loading.value = false;
+    // Sayfa değiştiğinde en yukarı kaydır
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 };
+
+// --- Lifecycle & Watchers ---
 
 onMounted(() => {
   fetchData(route.params.id);
@@ -73,101 +75,245 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 pb-10">
+  <div class="page-container bg-gray-50 min-h-screen">
     <Header />
 
-    <div
-      v-if="loading"
-      class="text-center mt-20 text-xl font-bold text-gray-500 italic animate-pulse"
-    >
-      🌸 Ürün Yükleniyor...
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>🌸 SakuraStore Ürünü Hazırlıyor...</p>
     </div>
 
-    <div v-else-if="!product" class="text-center mt-20">
-      <h2 class="text-2xl font-bold text-red-600">Hata: Ürün bulunamadı!</h2>
-      <p class="text-gray-500 mt-2">
-        Aradığınız ürün mevcut olmayabilir veya silinmiş olabilir.
-      </p>
-      <router-link to="/Allproducts" class="text-blue-900 underline mt-4 inline-block"
-        >Tüm Ürünlere Dön</router-link
-      >
+    <div v-else-if="!product" class="error-wrapper">
+      <div class="error-card">
+        <h2>Hata: Ürün bulunamadı!</h2>
+        <p>Aradığınız ürün mevcut olmayabilir veya silinmiş olabilir.</p>
+        <router-link to="/Allproducts" class="back-link">Tüm Ürünlere Dön</router-link>
+      </div>
     </div>
 
-    <div v-else class="max-w-4xl mx-auto mt-10 mb-20 p-6">
-      <div class="bg-white shadow-lg rounded-3xl p-8 mb-12 border border-white">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div class="relative group">
+    <div v-else class="content-wrapper max-w-5xl mx-auto p-6 mt-10">
+      <div class="product-main-card">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div class="image-box">
             <img
               :src="formatImage(product.images)"
-              class="w-full h-auto rounded-2xl object-cover shadow-md transition-transform duration-500 group-hover:scale-[1.02]"
               :alt="product.title"
-              @error="
-                (e) =>
-                  (e.target.src = 'https://placehold.co/600x600?text=Resim+Yuklenemedi')
-              "
+              class="product-img"
+              @error="(e) => (e.target.src = tukendiImage)"
             />
           </div>
 
-          <div class="flex flex-col justify-center">
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-2 leading-tight">
-              {{ product.title }}
-            </h1>
-            <p class="text-sm font-bold text-blue-500 uppercase tracking-widest mb-4">
-              {{ product.category?.name }}
-            </p>
-
-            <p class="text-4xl text-gray-900 font-black mb-6">${{ product.price }}</p>
-
-            <p class="text-gray-600 mb-8 leading-relaxed text-lg">
-              {{ product.description }}
-            </p>
+          <div class="info-box">
+            <span class="category-tag">{{ product.category?.name }}</span>
+            <h1 class="title">{{ product.title }}</h1>
+            <p class="price">${{ product.price }}</p>
+            <p class="description">{{ product.description }}</p>
 
             <CustomButton
               mode="add-to-cart"
               :product="product"
               @click="store.addToCart(product)"
-              class="w-full md:w-max px-12"
+              class="w-full md:w-max mt-4"
             />
           </div>
         </div>
       </div>
 
-      <div v-if="relatedProducts.length > 0" class="mt-12">
-        <h2 class="text-2xl font-bold text-gray-800 mb-8 flex items-center">
-          <span class="w-2 h-8 bg-pink-500 mr-3 rounded-full"></span>
-          Bunları da Beğenebilirsiniz
+      <div v-if="relatedProducts.length > 0" class="related-section mt-20">
+        <h2 class="section-title">
+          <span class="pink-bar"></span> Bunları da Beğenebilirsiniz
         </h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          <div
-            v-for="item in relatedProducts"
-            :key="item.id"
-            class="bg-white p-5 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-50"
-          >
-            <div class="h-48 overflow-hidden rounded-xl mb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          <div v-for="item in relatedProducts" :key="item.id" class="item-card">
+            <div class="item-img-wrapper">
               <img
                 :src="formatImage(item.images)"
-                class="w-full h-full object-cover"
                 :alt="item.title"
-                @error="
-                  (e) => (e.target.src = 'https://placehold.co/400x400?text=SakuraStore')
-                "
+                @error="(e) => (e.target.src = tukendiImage)"
               />
             </div>
-
-            <h3 class="font-bold text-gray-800 truncate mb-1">{{ item.title }}</h3>
-            <p class="text-blue-600 font-extrabold mb-4">${{ item.price }}</p>
-
-            <router-link
-              :to="{ name: 'product-details', params: { id: item.id } }"
-              class="block w-full text-center border-2 border-pink-500 text-pink-500 py-2 rounded-xl font-bold hover:bg-pink-500 hover:text-white transition-colors"
-            >
-              İncele
-            </router-link>
+            <div class="item-info">
+              <h3>{{ item.title }}</h3>
+              <p class="item-price">${{ item.price }}</p>
+              <router-link
+                :to="{ name: 'product-details', params: { id: item.id } }"
+                class="detail-btn"
+              >
+                İncele
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <AppFooter />
   </div>
-  <AppFooter />
 </template>
+
+<style scoped>
+/* Yükleme ve Hata Alanları */
+.loading-state {
+  text-align: center;
+  margin-top: 5rem;
+  color: #6b7280;
+  font-weight: bold;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #ec4899;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.error-wrapper {
+  text-align: center;
+  margin-top: 5rem;
+}
+
+.error-card h2 {
+  color: #ef4444;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.back-link {
+  color: #1e3a8a;
+  text-decoration: underline;
+  margin-top: 1rem;
+  display: inline-block;
+}
+
+/* Ana Ürün Kartı */
+.product-main-card {
+  background: white;
+  border-radius: 2rem;
+  padding: 2.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  border: 1px solid #ffffff;
+}
+
+.product-img {
+  width: 100%;
+  height: auto;
+  border-radius: 1.5rem;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.product-img:hover {
+  transform: scale(1.02);
+}
+
+.category-tag {
+  color: #3b82f6;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.price {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #111827;
+  margin: 1rem 0;
+}
+
+.description {
+  color: #4b5563;
+  line-height: 1.7;
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+}
+
+/* Benzer Ürünler */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.pink-bar {
+  width: 8px;
+  height: 32px;
+  background-color: #ec4899;
+  margin-right: 12px;
+  border-radius: 999px;
+}
+
+.item-card {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  border: 1px solid #f3f4f6;
+  transition: all 0.3s ease;
+}
+
+.item-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.item-img-wrapper {
+  height: 200px;
+  border-radius: 1rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.item-img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-price {
+  color: #2563eb;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.detail-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 0.6rem;
+  border: 2px solid #ec4899;
+  color: #ec4899;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.detail-btn:hover {
+  background-color: #ec4899;
+  color: white;
+}
+</style>

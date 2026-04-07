@@ -71,9 +71,6 @@
         <h3 class="text-2xl font-black text-gray-800 mb-3 tracking-tight">
           HENÜZ SİPARİŞİNİZ YOK
         </h3>
-        <p class="text-gray-400 mb-10 max-w-sm mx-auto leading-relaxed">
-          SakuraStore koleksiyonuna göz atmak ister misiniz? Harika ürünler seni bekliyor!
-        </p>
         <router-link
           to="/"
           class="inline-block bg-indigo-900 text-white px-10 py-4 rounded-full font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-800 transition-all transform hover:-translate-y-1"
@@ -125,7 +122,7 @@
 
           <div class="p-6">
             <div
-              v-for="(item, index) in order.items.slice(0, 2)"
+              v-for="(item, index) in order.items.slice(0, 3)"
               :key="index"
               class="flex justify-between items-center py-3 border-b border-dashed border-gray-100 last:border-0"
             >
@@ -133,7 +130,7 @@
                 <div class="w-2.5 h-2.5 rounded-full bg-pink-400"></div>
                 <span
                   @click="goToProduct(item.id)"
-                  class="text-gray-700 font-medium cursor-pointer hover:text-pink-600 transition-colors"
+                  class="text-gray-700 font-medium cursor-pointer hover:text-pink-600 hover:underline transition-all"
                 >
                   {{ item.title }}
                 </span>
@@ -142,10 +139,10 @@
               <span class="font-bold text-gray-900">${{ item.price }}</span>
             </div>
             <p
-              v-if="order.items.length > 2"
+              v-if="order.items.length > 3"
               class="text-[10px] text-gray-400 mt-2 font-bold uppercase"
             >
-              + {{ order.items.length - 2 }} Ürün Daha...
+              + {{ order.items.length - 3 }} Ürün Daha...
             </p>
           </div>
 
@@ -195,17 +192,6 @@
       </div>
 
       <div class="p-8">
-        <div class="flex justify-between mb-6 border-b border-gray-100 pb-4">
-          <div>
-            <p class="text-[10px] font-bold text-gray-400 uppercase">Sipariş No</p>
-            <p class="font-bold text-gray-800">#{{ selectedOrder.id }}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-[10px] font-bold text-gray-400 uppercase">Tarih</p>
-            <p class="font-bold text-gray-800">{{ selectedOrder.date }}</p>
-          </div>
-        </div>
-
         <div class="space-y-4 mb-8 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
           <div
             v-for="(item, idx) in selectedOrder.items"
@@ -213,9 +199,9 @@
             class="group flex justify-between items-center p-4 bg-gray-50 rounded-2xl hover:bg-pink-50 transition-all border border-transparent hover:border-pink-100"
           >
             <div class="flex flex-col">
-              <router-link
-                :to="{ name: 'ProductDetails', params: { id: item.id } }"
-                class="text-indigo-900 font-bold text-sm hover:text-pink-600 transition-colors flex items-center gap-2 group/link"
+              <div
+                @click="goToProduct(item.id)"
+                class="text-indigo-900 font-bold text-sm hover:text-pink-600 transition-colors flex items-center gap-2 group/link cursor-pointer"
               >
                 {{ item.title }}
                 <svg
@@ -232,7 +218,7 @@
                     d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                   />
                 </svg>
-              </router-link>
+              </div>
               <span
                 class="text-pink-500 text-[10px] font-black uppercase tracking-widest mt-1"
                 >Adet: {{ item.quantity }}</span
@@ -243,7 +229,7 @@
         </div>
 
         <div
-          class="bg-indigo-50 p-5 rounded-2xl flex justify-between items-center border border-indigo-100 shadow-inner"
+          class="bg-indigo-50 p-5 rounded-2xl flex justify-between items-center border border-indigo-100"
         >
           <span class="font-bold text-indigo-900 uppercase text-xs tracking-widest"
             >Toplam Tutar</span
@@ -257,7 +243,7 @@
       <div class="p-6 bg-gray-50 text-center">
         <button
           @click="selectedOrder = null"
-          class="w-full bg-indigo-900 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition-all shadow-lg shadow-indigo-100"
+          class="w-full bg-indigo-900 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition-all"
         >
           KAPAT
         </button>
@@ -267,7 +253,6 @@
 
   <AppFooter />
 </template>
-
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -283,13 +268,17 @@ const openOrderDetails = (order) => {
   selectedOrder.value = { ...order };
 };
 
+// Ürün detayına gitme fonksiyonu
 const goToProduct = (productId) => {
   if (productId) {
-    router.push({ name: "ProductDetails", params: { id: productId } });
+    // DÜZELTME: router/index.js'deki yeni isimle (product-details) eşleşmeli
+    router.push({ name: "product-details", params: { id: productId } });
+    selectedOrder.value = null;
   }
 };
 
 const totalSpending = computed(() => {
+  // Siparişlerin toplam harcamasını hesapla
   return orderStore.orders
     .reduce((sum, order) => sum + Number(order.total || 0), 0)
     .toFixed(2);
@@ -297,8 +286,13 @@ const totalSpending = computed(() => {
 
 const clearHistory = () => {
   if (confirm("Tüm sipariş geçmişinizi silmek istediğinize emin misiniz?")) {
-    orderStore.orders = [];
-    localStorage.removeItem("sakura_orders");
+    // Store'un kendi temizleme metodunu kullanmak (varsa) veya manuel sıfırlamak
+    if (typeof orderStore.clearOrders === "function") {
+      orderStore.clearOrders();
+    } else {
+      orderStore.orders = [];
+      localStorage.removeItem("sakura_orders");
+    }
   }
 };
 </script>

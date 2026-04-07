@@ -35,6 +35,7 @@
                 <img
                   :src="formatImage(product.images)"
                   :alt="product.title"
+                  @error="(e) => (e.target.src = tukendiImage)"
                   class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <button
@@ -74,7 +75,7 @@
                   <p class="text-gray-500 text-base leading-relaxed line-clamp-3 mb-6">
                     {{
                       product.description ||
-                      "SakuraStore kalitesiyle seçilen bu özel ürün, tarzınıza şıklık katmak için tasarlandı. Detaylı bilgi için ürünü inceleyebilirsiniz."
+                      "SakuraStore kalitesiyle seçilen bu özel ürün, tarzınıza şıklık katmak için tasarlandı."
                     }}
                   </p>
                 </div>
@@ -87,7 +88,7 @@
                     Sepete Ekle
                   </button>
                   <router-link
-                    :to="`/products/${product.id}`"
+                    :to="{ name: 'product-details', params: { id: product.id } }"
                     class="px-8 py-4 rounded-2xl border-2 border-gray-100 text-gray-500 text-sm font-bold hover:bg-gray-50 transition-all text-center uppercase tracking-widest"
                   >
                     Detaylar
@@ -139,19 +140,25 @@
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import { useCartStore } from "@/stores/cart";
+// DÜZELTME: tukendiImage import edildi
+import tukendiImage from "@/components/pictures/tukendi.jpg";
 
 const store = useCartStore();
 
 const formatImage = (imgData) => {
-  if (!imgData) return "https://placehold.co/800x800?text=Resim+Yok";
+  if (!imgData || (Array.isArray(imgData) && imgData.length === 0)) return tukendiImage;
   let url = Array.isArray(imgData) ? imgData[0] : imgData;
   let cleaned = String(url)
     .replace(/[\[\]"]/g, "")
     .trim();
-  if (cleaned.includes("placeimg.com") || !cleaned.startsWith("http")) {
-    return "https://placehold.co/800x800?text=Sakura+Store";
-  }
-  return cleaned;
+
+  // Bozuk link kontrolü
+  const isInvalid =
+    cleaned.includes("placeimg.com") ||
+    cleaned.includes("any") ||
+    !cleaned.startsWith("http");
+
+  return isInvalid ? tukendiImage : cleaned;
 };
 </script>
 

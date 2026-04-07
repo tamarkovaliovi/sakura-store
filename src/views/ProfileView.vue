@@ -2,12 +2,15 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useOrderStore } from "@/stores/orderStore";
+import { useAuthStore } from "@/stores/auth"; // Auth store'u ekledik
+import apiClient from "@/services/axios"; // Axios instance'ı ekledik
 import Header from "@/components/Header.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import CustomButton from "@/components/CustomButton.vue";
 
 const router = useRouter();
 const orderStore = useOrderStore();
+const authStore = useAuthStore();
 
 const loading = ref(true);
 const updating = ref(false);
@@ -26,8 +29,6 @@ const showToast = (msg, type = "success") => {
   }, 3000);
 };
 
-const API_BASE_URL = "https://api.escuelajs.co";
-
 const coupons = ref([
   { code: "SAKURA20", discount: "%20 İndirim", desc: "Tüm koleksiyonda geçerli" },
   { code: "SPRING15", discount: "%15 İndirim", desc: "Bahar ürünlerinde geçerli" },
@@ -39,27 +40,21 @@ const copyCoupon = (code) => {
 };
 
 const fetchUserProfile = async () => {
-  const token = localStorage.getItem("user_token");
+  // DÜZELTME: access_token kontrolü
+  const token = localStorage.getItem("access_token");
   if (!token) {
     router.push("/login");
     return;
   }
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/profile`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
 
-    if (response.ok) {
-      const data = await response.json();
-      user.value = data;
-      editForm.value = { name: data.name, avatar: data.avatar };
-    } else {
-      handleLogout();
-    }
+  try {
+    // DÜZELTME: Doğrudan apiClient kullanarak sadeleştirdik
+    const response = await apiClient.get("/auth/profile");
+    user.value = response.data;
+    editForm.value = { name: response.data.name, avatar: response.data.avatar };
   } catch (error) {
     console.error("Profil Hatası:", error);
-    showToast("Bağlantı hatası oluştu!", "error");
+    handleLogout();
   } finally {
     loading.value = false;
   }
@@ -72,39 +67,26 @@ const handleUpdateUser = async () => {
   }
 
   updating.value = true;
-  const token = localStorage.getItem("user_token");
-
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/users/${user.value.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name: editForm.value.name,
-        avatar: editForm.value.avatar,
-      }),
+    // DÜZELTME: apiClient ile PUT isteği
+    const response = await apiClient.put(`/users/${user.value.id}`, {
+      name: editForm.value.name,
+      avatar: editForm.value.avatar,
     });
 
-    if (response.ok) {
-      const updatedData = await response.json();
-      user.value = updatedData;
-      showModal.value = false;
-      showToast("Profil başarıyla güncellendi!", "success");
-    } else {
-      showToast("Güncelleme başarısız.", "error");
-    }
+    user.value = response.data;
+    showModal.value = false;
+    showToast("Profil başarıyla güncellendi!", "success");
   } catch (error) {
-    showToast("Bir hata oluştu.", "error");
+    showToast("Güncelleme başarısız.", "error");
   } finally {
     updating.value = false;
   }
 };
 
 const handleLogout = () => {
-  localStorage.clear();
-  window.location.href = "/login";
+  // DÜZELTME: authStore üzerindeki logout metodunu çağırmak daha profesyoneldir
+  authStore.logout();
 };
 
 onMounted(() => {

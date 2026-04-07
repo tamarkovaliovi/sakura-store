@@ -114,18 +114,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-
+import { ref, watch } from "vue"; // onMounted yerine watch kullanıyoruz
+import { useRoute } from "vue-router";
 import apiClient from "@/services/axios";
 import AppHeader from "../components/Header.vue";
 import AppFooter from "../components/AppFooter.vue";
 
+const route = useRoute();
 const categories = ref([]);
 const isEditing = ref(false);
 const showModal = ref(false);
-
 const endpoint = "/categories";
-
 const categoryForm = ref({ id: null, name: "", image: "" });
 
 const openAddModal = () => {
@@ -147,6 +146,7 @@ const formatCategoryImage = (url) => {
   return cleaned;
 };
 
+// Kategorileri çeken ana fonksiyon
 const fetchCategories = async () => {
   try {
     const response = await apiClient.get(endpoint);
@@ -158,6 +158,17 @@ const fetchCategories = async () => {
   }
 };
 
+// --- TEK İSTEK İÇİN WATCHER ---
+// immediate: true sayesinde sayfa ilk açıldığında otomatik çalışır,
+// onMounted'a gerek kalmaz ve çift istek atılmasını engeller.
+watch(
+  () => route.path,
+  () => {
+    fetchCategories();
+  },
+  { immediate: true }
+);
+
 const createCategory = async () => {
   try {
     await apiClient.post(endpoint, {
@@ -168,7 +179,7 @@ const createCategory = async () => {
     resetForm();
     showModal.value = false;
   } catch (error) {
-    alert("Ekleme başarısız. Yetkiniz olmayabilir.");
+    alert("Ekleme başarısız. Yetkiniz olmayabilir veya token geçersiz.");
   }
 };
 
@@ -211,6 +222,4 @@ const deleteCategory = async (id) => {
     }
   }
 };
-
-onMounted(fetchCategories);
 </script>
